@@ -3,19 +3,19 @@ body {
     color: #00ff41;
     font-family: 'Courier New', Courier, monospace;
     display: flex;
-    flex-direction: column;
-    align-items: center;
     justify-content: center;
+    align-items: center;
     height: 100vh;
     margin: 0;
-    overflow: hidden;
+    user-select: none;
 }
 
 #game-container {
-    text-align: center;
-    border: 1px solid #00ff41;
+    border: 2px solid #00ff41;
     padding: 20px;
-    box-shadow: 0 0 15px #00ff4133;
+    background: #000;
+    text-align: center;
+    box-shadow: 0 0 20px rgba(0, 255, 65, 0.2);
 }
 
 #grid {
@@ -23,7 +23,7 @@ body {
     grid-template-columns: repeat(6, 50px);
     grid-template-rows: repeat(6, 50px);
     gap: 10px;
-    margin: 20px 0;
+    margin: 20px auto;
 }
 
 .node {
@@ -33,32 +33,36 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
     font-size: 24px;
-    transition: all 0.2s;
-    user-select: none;
+    cursor: pointer;
 }
 
-.node:hover {
-    background: #00ff4122;
+/* empty nodes are hollow */
+.node.broken {
+    border: 1px solid #00ff41;
+    color: transparent;
+    background: rgba(0, 255, 65, 0.1);
 }
 
-.node.start { border-color: #00ff41; color: #fff; background: #004411; }
-.node.exit { border-color: #ff0041; color: #fff; background: #440011; }
+/* path lighting up */
+.node.active {
+    background: #00ff41;
+    color: #000;
+    box-shadow: 0 0 10px #00ff41;
+}
 
-#status { margin-bottom: 10px; font-weight: bold; }
-#timer { font-size: 20px; color: #ff0041; }
+#timer { font-size: 24px; color: #ff0041; margin-bottom: 10px; }
+#status { font-weight: bold; margin-bottom: 10px; height: 1.2em; }
 
 button {
-    background: none; 
-    border: 1px solid #00ff41; 
-    color: #00ff41; 
-    padding: 10px; 
+    background: #000;
+    color: #00ff41;
+    border: 1px solid #00ff41;
+    padding: 12px 24px;
     cursor: pointer;
     font-family: inherit;
+    font-size: 16px;
 }
 
-button:hover {
-    background: #00ff41;
-    color: #050505;
-}
+button:hover { background: #004411; }
+button:active { background: #00ff41; color: #000; }

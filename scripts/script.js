@@ -5,100 +5,125 @@ let timeLeft = 30;
 let timerInterval;
 
 const gridElement = document.getElementById('grid');
+const statusElement = document.getElementById('status');
 const timerElement = document.getElementById('timer');
 const restartBtn = document.getElementById('restart-btn');
 
-// Initialize Game
 function initGame() {
     clearInterval(timerInterval);
     timeLeft = 30;
-    timerElement.innerText = `TIME REMAINING: ${timeLeft}s`;
-    createGrid();
+    statusElement.innerText = "CORRECT COURSE TO EXIT";
+    statusElement.style.color = "#00ff41";
+    
+    generateLevel();
     startTimer();
 }
 
-function createGrid() {
-    gridElement.innerHTML = '';
+function generateLevel() {
     gridData = [];
+    gridElement.innerHTML = '';
 
-    // 1. Generate random nodes
+    // create the base grid 
     for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
-        gridData.push({
-            index: i,
-            dir: Math.floor(Math.random() * 4)
-        });
+        gridData.push({ dir: Math.floor(Math.random() * 4), isPath: false, isBroken: false });
     }
 
-    // 2. Render Nodes to DOM
-    const startIdx = 0;
-    const exitIdx = (GRID_SIZE * GRID_SIZE) - 1;
+    // carve guarenteed path 
+    let current = 0;
+    gridData[0].isPath = true;
+    while (current !== 35) {
+        let x = current % GRID_SIZE;
+        let y = Math.floor(current / GRID_SIZE);
+        let canGoRight = x < GRID_SIZE - 1;
+        let canGoDown = y < GRID_SIZE - 1;
+        let move = (Math.random() > 0.5 && canGoRight) || !canGoDown ? 1 : 2;
+        
+        if (move === 1) { gridData[current].dir = 1; current++; } 
+        else { gridData[current].dir = 2; current += GRID_SIZE; }
+        gridData[current].isPath = true;
+    }
 
+    // break 4-6 nodes on path 
+    gridData.forEach((data, i) => {
+        if (data.isPath && i !== 0 && i !== 35 && Math.random() > 0.4) {
+            data.isBroken = true;
+            data.dir = Math.floor(Math.random() * 4);
+        }
+    });
+
+    renderGrid();
+    updateVisualPath();
+}
+
+function renderGrid() {
     gridData.forEach((data, i) => {
         const node = document.createElement('div');
-        node.classList.add('node');
-        
-        if (i === startIdx) node.classList.add('start');
-        if (i === exitIdx) node.classList.add('exit');
-        
+        node.className = 'node';
+        if (data.isBroken) node.classList.add('broken');
         node.innerText = directions[data.dir];
-        node.onclick = () => rotateNode(i, node);
         
+        node.onclick = function() {
+            // cycle direction 
+            data.dir = (data.dir + 1) % 4;
+            this.innerText = directions[data.dir];
+            this.classList.remove('broken');
+            updateVisualPath();
+        };
         gridElement.appendChild(node);
     });
 }
 
-function rotateNode(index, element) {
-    gridData[index].dir = (gridData[index].dir + 1) % 4;
-    element.innerText = directions[gridData[index].dir];
-    checkWin();
-}
+function updateVisualPath() {
+    const nodes = document.querySelectorAll('.node');
+    if (!nodes.length) return;
+    
+    nodes.forEach(n => n.classList.remove('active'));
 
-function checkWin() {
-    let current = 0; // Start point
-    const exit = (GRID_SIZE * GRID_SIZE) - 1;
-    const visited = new Set();
+    let current = 0;
+    let visited = new Set();
 
-    while (current !== exit) {
-        if (visited.has(current)) break; // Prevent infinite loops
+    while (current !== null) {
+        nodes[current].classList.add('active');
+        if (current === 35) return winGame();
+        
         visited.add(current);
-
         let x = current % GRID_SIZE;
         let y = Math.floor(current / GRID_SIZE);
         let dir = gridData[current].dir;
 
-        // Calculate next movement
-        if (dir === 0) y--;      // Up
-        else if (dir === 1) x++; // Right
-        else if (dir === 2) y++; // Down
-        else if (dir === 3) x--; // Left
+        // move calculation based on direction
+        if (dir === 0) y--; else if (dir === 1) x++;
+        else if (dir === 2) y++; else if (dir === 3) x--;
 
-        // Check if move is out of bounds
-        if (x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE) break;
-
-        current = y * GRID_SIZE + x;
-        
-        if (current === exit) {
-            clearInterval(timerInterval);
-            setTimeout(() => alert("ACCESS GRANTED. SYSTEM BYPASSED."), 10);
-            return;
-        }
+        // if the next node isn't the hidden path, stop the visual 
+        let next = (x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE) ? null : y * GRID_SIZE + x;
+        if (next === null || visited.has(next)) break;
+        current = next;
     }
 }
 
 function startTimer() {
     timerInterval = setInterval(() => {
-        timeLeft--;
-        timerElement.innerText = `TIME REMAINING: ${timeLeft}s`;
+        timeLeft -= 0.01;
+        timerElement.innerText = "TIME: " + timeLeft.toFixed(2) + "s";
         if (timeLeft <= 0) {
             clearInterval(timerInterval);
-            alert("HACK DETECTED. SYSTEM LOCKED.");
-            initGame();
+            timerElement.innerText = "TIME: 0.00s";
+            statusElement.innerText = "SYSTEM LOCKED";
+            statusElement.style.color = "#ff0041";
         }
-    }, 1000);
+    }, 10);
 }
 
-// Event Listeners
-restartBtn.addEventListener('click', initGame);
+function winGame() {
+    clearInterval(timerInterval);
+    statusElement.innerText = "ACCESS GRANTED";
+}
 
-// Auto-start on load
+// final check to make sure button works
+if (restartBtn) {
+    restartBtn.onclick = initGame;
+}
+
+// kick off the first game
 initGame();
