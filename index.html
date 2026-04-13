@@ -1,20 +1,107 @@
+<!--
+    CIS 376 - 01 ; Dr. Cumbie
+    Jasmine Morgan
+    4/13/2026
+    Description: DoS Attack game clone 
+-->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DOS ATTACK | TERMINAL</title>
+    <title>DOS Attack | System Recovery</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="styles/style.css">
-    <script src="scripts/script.js" defer></script>
+    <script type="module" src="scripts/game.js" defer></script>
 </head>
-<body>
+<body class="bg-black">
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-black border-bottom border-success">
+            <div class="container">
+                <a class="navbar-brand text-success" href="#">[TERMINAL_V2.0]</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item"><a class="nav-link" href="#" id="nav-reset">Play/Reset</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#howToModal">How to Play</a></li>
+                        <li class="nav-item"><a class="nav-link" href="https://github.com/galaxydotco" target="_blank">Dev Profile</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
 
-    <div id="game-container">
-        <div id="status">INITIALIZING...</div>
-        <div id="timer">TIME: 30.00s</div>
-        <div id="grid"></div>
-        <button id="restart-btn">REBOOT SYSTEM</button>
+    <main class="container my-5">
+        <div class="row g-4">
+            <aside class="col-md-4">
+                <section class="card bg-black border-success text-success mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title text-uppercase">Operator Auth</h5>
+                        <form id="player-form" class="needs-validation" novalidate>
+                            <div class="mb-3">
+                                <input type="text" class="form-control bg-dark text-success border-success" id="username" placeholder="Login Name" required minlength="3">
+                            </div>
+                            <button type="submit" class="btn btn-outline-success w-100">SYNC PROFILE</button>
+                        </form>
+                    </div>
+                </section>
+
+                <section class="card bg-black border-success text-success p-3" aria-live="polite">
+                    <div class="d-flex justify-content-between">
+                        <span>USER:</span>
+                        <span id="display-name">GUEST</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>BEST:</span>
+                        <span id="high-score">--</span>
+                    </div>
+                    <hr class="border-success">
+                    <div id="timer" class="display-6 text-danger text-center">30.00s</div>
+                </section>
+            </aside>
+
+            <section class="col-md-8 text-center">
+                <div id="game-container" class="p-3 border border-success rounded">
+                    <div id="status" class="mb-3 text-uppercase">Initialize system to begin...</div>
+                    <div id="game-board"></div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <div class="modal fade" id="howToModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content bg-black text-success border border-success">
+                <div class="modal-header border-success">
+                    <h5 class="modal-title">DOS ATTACK MANUAL</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>> Follow the connection from the Start node.</p>
+                    <p>> Click empty/broken nodes to correct the travel path.</p>
+                    <p>> Reach the Exit node before the buffer overflows.</p>
+                </div>
+            </div>
+        </div>
     </div>
+    
+    <footer class="bg-black py-4 border-top border-success mt-auto text-center">
+        <div class="container small">
+            <p>
+                <a href="https://github.com/galaxydotco" class="text-success text-decoration-none">Dev Profile</a> | 
+                <a href="https://github.com/galaxydotco/cis376-web-game" class="text-success text-decoration-none">Project Repo</a>
+            </p>
+            <div class="d-flex justify-content-center gap-2">
+                <a href="https://validator.w3.org/nu/" target="_blank" class="btn btn-sm btn-outline-secondary">Nu Validator</a>
+            </div>
+        </div>
+    </footer>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
