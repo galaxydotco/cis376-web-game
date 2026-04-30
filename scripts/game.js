@@ -123,7 +123,6 @@ function startNewGame() {
     }, 10);
 
     buildLevel();
-    updatePathTracing();
 }
 
 function buildLevel() {
@@ -140,12 +139,14 @@ function buildLevel() {
         });
     }
     renderBoard(board);
+    updatePathTracing();
 }
 
 function renderBoard(board) {
     state.grid.forEach(cell => {
         const div = document.createElement('div');
         div.className = 'node';
+        div.dataset.id = cell.id;
         if (cell.isBroken) div.classList.add('broken');
         if (cell.id === 35) div.classList.add('exit');
         div.innerText = config.arrows[cell.dir];
@@ -155,7 +156,6 @@ function renderBoard(board) {
             if (!state.isActive) return;
 
             if (cell.isBroken) {
-                // Silent repair check
                 if (!div.classList.contains('active')) return; 
                 cell.isBroken = false;
                 div.classList.remove('broken');
@@ -163,7 +163,6 @@ function renderBoard(board) {
                 cell.dir = (cell.dir + 1) % 4;
                 div.innerText = config.arrows[cell.dir];
 
-                // Play rotation sounds
                 if (cell.dir === 0 || cell.dir === 2) {
                     sounds.clickUpDn.currentTime = 0;
                     sounds.clickUpDn.play().catch(() => {});
@@ -183,9 +182,9 @@ function renderBoard(board) {
 
 function updatePathTracing() {
     const nodes = document.querySelectorAll('.node');
-    if (!nodes.length || !statusDisplay) return;
+    if (!nodes.length || !statusDisplay || !state.isActive) return;
 
-    // 1. Reset visual path
+    // Reset visual path
     nodes.forEach(n => n.classList.remove('active'));
     
     let currIdx = 0;
@@ -193,75 +192,70 @@ function updatePathTracing() {
     let isBlocked = false;
     let reachedEnd = false;
 
-    // 2. WIN REQUIREMENT: 
-    // We count every node that is NOT broken. 
-    // These are the "Empty" nodes you must intersect.
-    const totalEmptyNodes = state.grid.filter(cell => !cell.isBroken).length;
-
-    // 3. Trace the signal from Start (0)
+    // 1. Trace the current path from the start
     while (currIdx !== null) {
-        nodes[currIdx].classList.add('active');
+        const nodeEl = nodes[currIdx];
+        nodeEl.classList.add('active');
         visited.add(currIdx);
 
-        // If the path hits a broken node, tracing stops.
         if (state.grid[currIdx].isBroken) {
             isBlocked = true;
             break; 
         }
 
-        // 4. Check for Exit (35)
         if (currIdx === 35) {
             reachedEnd = true;
-            break; // Stop the loop so we can evaluate the win condition
+            break; 
         }
 
-        // 5. Calculate Next Index
         let x = currIdx % 6;
         let y = Math.floor(currIdx / 6);
         let direction = state.grid[currIdx].dir;
 
-        if (direction === 0) y--;      // ↑
-        else if (direction === 1) x++; // →
-        else if (direction === 2) y++; // ↓
-        else if (direction === 3) x--; // ←
+        if (direction === 0) y--;
+        else if (direction === 1) x++;
+        else if (direction === 2) y++;
+        else if (direction === 3) x--;
 
         if (x < 0 || x >= 6 || y < 0 || y >= 6) break;
         let nextIdx = y * 6 + x;
-        if (visited.has(nextIdx)) break; // Loop protection
-        
+        if (visited.has(nextIdx)) break;
         currIdx = nextIdx;
     }
 
-    // 6. FINAL WIN EVALUATION
+    // 2. WIN CONDITION CHECK
+    // Check if there are any EMPTY (not broken) nodes that are NOT in the active path
+    const unvisitedEmptyNodes = state.grid.filter(cell => !cell.isBroken && !visited.has(cell.id));
+
     if (reachedEnd && !isBlocked) {
-        // Did the path hit every single non-broken node on the board?
-        if (visited.size === totalEmptyNodes) {
-            if (state.timeLeft < config.timerMax) {
-                handleWin();
-            }
+        if (unvisitedEmptyNodes.length === 0) {
+            // Success: Path hits exit AND all empty nodes are part of the path
+            handleWin();
         } else {
-            // Reached end but skipped some empty nodes
-            if (statusDisplay.innerText !== "INCOMPLETE CIRCUIT: MUST INTERSECT ALL EMPTY NODES") {
+            // Error: Path hits exit but skipped some empty nodes
+            if (!statusDisplay.innerText.includes("INCOMPLETE")) {
                 if (sounds.error) {
                     sounds.error.currentTime = 0;
                     sounds.error.play().catch(() => {});
                 }
-                statusDisplay.innerText = "INCOMPLETE CIRCUIT: MUST INTERSECT ALL EMPTY NODES";
+                statusDisplay.innerText = "INCOMPLETE CIRCUIT: ALL EMPTY NODES MUST BE FILLED";
                 statusDisplay.style.color = "#ffaa00";
             }
         }
-    } else if (!reachedEnd && state.isActive && statusDisplay.innerText.includes("INCOMPLETE")) {
-        // Reset status if they move away from the end
-        statusDisplay.innerText = "SIGNAL TRACE ACTIVE";
-        statusDisplay.style.color = "#00ff41";
+    } else {
+        // Clear error message if path is no longer touching the exit
+        if (state.isActive && statusDisplay.innerText.includes("INCOMPLETE")) {
+            statusDisplay.innerText = "SIGNAL TRACE ACTIVE";
+            statusDisplay.style.color = "#00ff41";
+        }
     }
 }
 
 async function handleWin() {
     if (!state.isActive) return;
-
     state.isActive = false;
     clearInterval(state.timerInterval);
+    
     if (sounds.win) sounds.win.play().catch(() => {});
 
     const timeTaken = (config.timerMax - state.timeLeft).toFixed(2);
