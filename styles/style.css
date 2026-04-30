@@ -128,3 +128,35 @@ body.theme-rainbow .node {
     50% { background-color: #1a0d00; }
     100% { background-color: #0d001a; }
 }
+
+/* Snappiness: Remove any accidental transitions that slow down rotation */
+.node {
+    transition: none !important; 
+    user-select: none;
+    cursor: pointer;
+}
+
+.node:active {
+    background: rgba(0, 255, 65, 0.2); /* Instant visual feedback on click */
+}
+
+/* Leaderboard #1 Highlight */
+.top-record-glow {
+    border: 2px solid #00ff41;
+    box-shadow: 0 0 15px rgba(0, 255, 65, 0.5);
+    position: relative;
+    overflow: hidden;
+}
+
+.top-record-glow::after {
+    content: "NEW RECORD";
+    position: absolute;
+    right: -20px;
+    top: 5px;
+    background: #00ff41;
+    color: #000;
+    font-size: 0.6rem;
+    font-weight: bold;
+    padding: 2px 20px;
+    transform: rotate(45deg);
+}
