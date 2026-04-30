@@ -23,7 +23,6 @@ const sounds = {
     clickRight: new Audio('assets/click_right.mp3')
 };
 
-// Set volumes (optional)
 Object.values(sounds).forEach(s => s.volume = 0.3);
 
 // --- 2. GLOBAL DOM CACHE ---
@@ -38,7 +37,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function init() {
-    // --- 1. Leaderboard Fetching (Keep this as is) ---
     Storage.getGlobalLeaderboard((scores) => {
         if (!leaderboardContainer) return;
         leaderboardContainer.innerHTML = '';
@@ -59,18 +57,12 @@ function init() {
 
     if (displayName) displayName.innerText = Storage.getUser();
 
-    // --- 2. The Fixed Player Form Section ---
-    // Make sure this line is OUTSIDE and ABOVE the listener
     const playerForm = document.getElementById('player-form');
-
     if (playerForm) {
         playerForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const nameInput = document.getElementById('username');
             if (nameInput && nameInput.value.length >= 3) {
-                // Play sound if it exists
-                if (sounds.start) sounds.start.play();
-
                 Storage.saveUser(nameInput.value);
                 if (displayName) displayName.innerText = nameInput.value;
                 startNewGame();
@@ -90,37 +82,26 @@ function init() {
 }
 
 function startNewGame() {
-    // 1. Reset state
     clearInterval(state.timerInterval);
     state.isActive = true;
     state.timeLeft = config.timerMax;
 
-    // 2. Reset Themes
+    // 1. Reset Themes
     document.body.classList.remove('theme-pink', 'theme-rainbow');
 
-    // 3. Roll for Easter Egg
+    // 2. Roll for Easter Egg and Play Start Sound
     const roll = Math.random();
-
     if (roll < 0.10) {
-        // 10% PINK THEME
         document.body.classList.add('theme-pink');
-        if (statusDisplay) {
-            statusDisplay.innerText = "OVERRIDE: CYBER-VIBE DETECTED";
-            statusDisplay.style.color = "#ff00ff"; // Optional: match the pink
-        }
+        if (statusDisplay) statusDisplay.innerText = "OVERRIDE: CYBER-VIBE DETECTED";
         if (sounds.egg_pink) sounds.egg_pink.play(); 
     } 
     else if (roll < 0.15) {
-        // 5% RAINBOW THEME
         document.body.classList.add('theme-rainbow');
-        if (statusDisplay) {
-            statusDisplay.innerText = "CRITICAL GLITCH: SPECTRUM SHIFT";
-            // Rainbow CSS handles the color
-        }
+        if (statusDisplay) statusDisplay.innerText = "CRITICAL GLITCH: SPECTRUM SHIFT";
         if (sounds.egg_rainbow) sounds.egg_rainbow.play();
     } 
     else {
-        // STANDARD THEME
         if (statusDisplay) {
             statusDisplay.innerText = "SIGNAL TRACE ACTIVE";
             statusDisplay.style.color = "#00ff41";
@@ -128,7 +109,7 @@ function startNewGame() {
         if (sounds.start) sounds.start.play();
     }
 
-    // 4. Start the Clock
+    // 3. Start the Clock
     state.timerInterval = setInterval(() => {
         state.timeLeft -= 0.01;
         if (timerDisplay) timerDisplay.innerText = state.timeLeft.toFixed(2) + "s";
@@ -144,30 +125,9 @@ function startNewGame() {
         }
     }, 10);
 
-    // 5. Build Level and Trace
     buildLevel();
     updatePathTracing();
 }
-
-// 3. Handle Easter Eggs (Apply themes before building the board)
-document.body.classList.remove('theme-pink', 'theme-rainbow');
-const roll = Math.random();
-if (roll < 0.10) {
-    document.body.classList.add('theme-pink');
-    if (statusDisplay) statusDisplay.innerText = "OVERRIDE: CYBER-VIBE DETECTED";
-} else if (roll < 0.15) {
-    document.body.classList.add('theme-rainbow');
-    if (statusDisplay) statusDisplay.innerText = "CRITICAL GLITCH: SPECTRUM SHIFT";
-} else {
-    if (statusDisplay) {
-        statusDisplay.innerText = "SIGNAL TRACE ACTIVE";
-        statusDisplay.style.color = "#00ff41";
-    }
-}
-
-// 4. Build Board and Trace Initial Path (ONLY ONCE)
-buildLevel();
-updatePathTracing();
 
 function buildLevel() {
     const board = document.getElementById('game-board');
@@ -197,10 +157,14 @@ function renderBoard(board) {
             if (!state.isActive) return;
 
             if (cell.isBroken) {
+                // Bypass Prevention: Only repair if the path currently reaches this node
                 if (!div.classList.contains('active')) {
-                    sounds.error.play(); // PLAY ERROR SOUND (Link required)
-                    // ... repair block logic
-                    return;
+                    if (sounds.error) sounds.error.play();
+                    if (statusDisplay) {
+                        statusDisplay.innerText = "SYSTEM LINK REQUIRED FOR REPAIR";
+                        statusDisplay.style.color = "#ff0041";
+                    }
+                    return; 
                 }
                 cell.isBroken = false;
                 div.classList.remove('broken');
@@ -208,8 +172,7 @@ function renderBoard(board) {
                 cell.dir = (cell.dir + 1) % 4;
                 div.innerText = config.arrows[cell.dir];
 
-                // DIRECTIONAL SOUND LOGIC
-                // 0: ↑, 1: →, 2: ↓, 3: ←
+                // Directional Sounds
                 if (cell.dir === 0 || cell.dir === 2) {
                     sounds.clickUpDn.currentTime = 0;
                     sounds.clickUpDn.play();
@@ -235,33 +198,28 @@ function updatePathTracing() {
     nodes.forEach(n => n.classList.remove('active'));
     let currIdx = 0;
     let visited = new Set();
+    let isBlocked = false;
 
     while (currIdx !== null) {
         nodes[currIdx].classList.add('active');
 
-        // --- THE WIN CHECK ---
-        if (currIdx === 35) {
-            // We only trigger the win if the timer has actually started (to prevent 0.00s)
+        // BYPASS PROTECTION: If path hits a broken node, it stops completely.
+        if (state.grid[currIdx].isBroken) {
+            isBlocked = true;
+            if (statusDisplay.innerText !== "SIGNAL BLOCKED: REPAIR REQUIRED") {
+                if (sounds.error) sounds.error.play();
+                statusDisplay.innerText = "SIGNAL BLOCKED: REPAIR REQUIRED";
+                statusDisplay.style.color = "#ff0041";
+            }
+            break; 
+        }
+
+        // WIN CHECK: Path reaches end AND isn't blocked.
+        if (currIdx === 35 && !isBlocked) {
             if (state.timeLeft < config.timerMax) {
                 handleWin();
             }
             return;
-        }
-
-        // If the path hits a broken node, it stops here.
-        // This is why "Active-Only Repair" works—the path "stops" on the broken node,
-        // making it 'active' so the player can fix it.
-        if (state.grid[currIdx].isBroken) {
-            if (statusDisplay) {
-                // Only play the error sound if the message wasn't already showing
-                // This prevents the sound from "machine-gunning" every time the path updates
-                if (statusDisplay.innerText !== "SIGNAL BLOCKED: REPAIR REQUIRED") {
-                    sounds.error.play();
-                }
-                statusDisplay.innerText = "SIGNAL BLOCKED: REPAIR REQUIRED";
-                statusDisplay.style.color = "#ff0041";
-            }
-            break;
         }
 
         visited.add(currIdx);
@@ -282,27 +240,23 @@ function updatePathTracing() {
 }
 
 async function handleWin() {
-    // If the game isn't active or the timer hasn't even started, ignore the win
     if (!state.isActive || state.timeLeft >= config.timerMax) return;
 
-    sounds.win.play(); // PLAY WIN SOUND
+    if (sounds.win) sounds.win.play();
     state.isActive = false;
     clearInterval(state.timerInterval);
 
     const timeTaken = (config.timerMax - state.timeLeft).toFixed(2);
     const username = Storage.getUser();
 
-    // Show win message immediately so the user sees they won
     if (statusDisplay) {
         statusDisplay.innerText = "ALL SYSTEMS RECOVERED - ACCESS GRANTED";
         statusDisplay.style.color = "#00ff41";
     }
 
-    // Save to Firebase in the background
     await Storage.saveGlobalScore(username, timeTaken);
 }
 
-// Console Easter Egg
 window.noclip = () => {
     clearInterval(state.timerInterval);
     if (timerDisplay) timerDisplay.innerText = "INF";
