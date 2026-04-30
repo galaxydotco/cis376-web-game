@@ -88,17 +88,14 @@ function startNewGame() {
         if (state.timeLeft <= 0) {
             clearInterval(state.timerInterval);
             state.isActive = false;
-            if (statusDisplay) statusDisplay.innerText = "CONNECTION TERMINATED";
+            if (statusDisplay) {
+                statusDisplay.innerText = "CONNECTION TERMINATED";
+                statusDisplay.style.color = "#ff0041";
+            }
         }
     }, 10);
 
-    // 3. Build Board
-    buildLevel(); 
-
-    // 4. Trace the initial path
-    updatePathTracing(); 
-
-    // 3. Handle Easter Eggs
+    // 3. Handle Easter Eggs (Apply themes before building the board)
     document.body.classList.remove('theme-pink', 'theme-rainbow');
     const roll = Math.random();
     if (roll < 0.10) {
@@ -114,8 +111,9 @@ function startNewGame() {
         }
     }
 
-    // 4. Build the Level last
-    buildLevel();
+    // 4. Build Board and Trace Initial Path (ONLY ONCE)
+    buildLevel(); 
+    updatePathTracing(); 
 }
 
 function buildLevel() {
