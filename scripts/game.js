@@ -71,7 +71,8 @@ function init() {
     }
 }
 
-function renderLeaderboard() {
+// Add 'newScoreIndex' as an argument
+function renderLeaderboard(newScoreIndex = null) {
     Storage.getGlobalLeaderboard((scores) => {
         if (!leaderboardContainer) return;
         leaderboardContainer.innerHTML = '';
@@ -85,7 +86,17 @@ function renderLeaderboard() {
         scores.forEach((entry, index) => {
             const div = document.createElement('div');
             div.className = 'entry';
-            if (index === 0) div.classList.add('top-record-glow'); 
+            
+            // Check if this row is the score the player JUST got
+            if (index === newScoreIndex) {
+                div.classList.add('new-score-highlight'); // Always gets the green border
+                
+                // ONLY add the text badge if it's the #1 spot
+                if (index === 0) {
+                    div.classList.add('top-record-badge');
+                }
+            } 
+            
             div.innerHTML = `<span><span class="rank">#${index + 1}</span> ${entry.username.toUpperCase()}</span><span>${entry.score.toFixed(2)}s</span>`;
             leaderboardContainer.appendChild(div);
         });
@@ -278,7 +289,8 @@ async function handleWin() {
         statusDisplay.innerText = `ACCESS GRANTED: TOP ${topPercent}% SPEED`;
         statusDisplay.style.color = "#00ff41";
         
-        renderLeaderboard();
+        // myRank is 1st, 2nd, 3rd etc. Arrays start at 0, so we subtract 1!
+        renderLeaderboard(myRank - 1); 
     });
 }
 

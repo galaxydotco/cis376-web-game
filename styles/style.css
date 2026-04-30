@@ -140,19 +140,20 @@ body.theme-rainbow .node {
     background: rgba(0, 255, 65, 0.2); /* Instant visual feedback on click */
 }
 
-.top-record-glow {
+/* 1. The general highlight for ANY new score */
+.new-score-highlight {
     border: 2px solid #00ff41;
     box-shadow: 0 0 15px rgba(0, 255, 65, 0.5);
     position: relative;
-    margin-top: 10px; /* Gives the badge room to breathe */
-    /* Make sure you REMOVE 'overflow: hidden;' if you had it previously */
+    margin-top: 10px; /* Gives the badge room to breathe if it gets one */
 }
 
-.top-record-glow::after {
+/* 2. The 'NEW RECORD' text that ONLY attaches to Rank #1 */
+.top-record-badge::after {
     content: "NEW RECORD";
     position: absolute;
-    top: -10px; /* Pushes it up onto the top border */
-    left: 15px; /* Aligns it nicely to the left */
+    top: -10px; 
+    left: 15px; 
     background: #00ff41;
     color: #000;
     font-size: 0.65rem;
@@ -160,5 +161,5 @@ body.theme-rainbow .node {
     padding: 2px 8px;
     border-radius: 3px;
     letter-spacing: 1px;
-    transform: none; /* Removes the 45-degree rotation */
+    /* Removed the transform/rotation so it sits flat and clean! */
 }
