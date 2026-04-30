@@ -8,7 +8,7 @@
 import { Storage } from './storage.js';
 
 const config = { size: 6, timerMax: 30, arrows: ['↑', '→', '↓', '←'] };
-let state = { grid: [], timeLeft: config.timerMax, isActive: false, timerInterval: null, hasMoved: false };
+let state = { grid: [], timeLeft: config.timerMax, isActive: false, timerInterval: null, hasMoved: false, startTime: null };
 
 const sounds = {
     egg_pink: new Audio('assets/pink_spawn.mp3'),
@@ -252,11 +252,12 @@ async function handleWin() {
     state.isActive = false;
     clearInterval(state.timerInterval);
     
+    // Absolute final time calculation
+    const finalTime = Date.now();
+    const timeTaken = Number(((finalTime - state.startTime) / 1000).toFixed(2));
+    
     sounds.win.currentTime = 0;
     sounds.win.play().catch(() => {});
-
-    // Ensure this is strictly a Number
-    const timeTaken = Number((config.timerMax - state.timeLeft).toFixed(2));
     
     // Save to database first so our current run is included in the array
     await Storage.saveGlobalScore(Storage.getUser(), timeTaken);
@@ -301,4 +302,40 @@ function handleGameOver() {
     sounds.fail.play().catch(() => {});
     statusDisplay.innerText = "CONNECTION TERMINATED";
     statusDisplay.style.color = "#ff0041";
+}
+
+
+async function startNewGame() {
+    clearInterval(state.timerInterval);
+    state.isActive = true;
+    state.hasMoved = false;
+    state.timeLeft = config.timerMax;
+    
+    // NEW: Capture absolute start time
+    state.startTime = Date.now(); 
+
+    // ... (keep your sound logic and theme logic here) ...
+
+    state.timerInterval = setInterval(() => {
+        // NEW MATH: Absolute Time Calculation
+        const now = Date.now();
+        const elapsedMilliseconds = now - state.startTime;
+        const elapsedSeconds = elapsedMilliseconds / 1000;
+        
+        state.timeLeft = config.timerMax - elapsedSeconds;
+
+        if (timerDisplay) {
+            // Ensure we don't show negative numbers if it lags at the very end
+            const displayTime = Math.max(0, state.timeLeft).toFixed(2);
+            timerDisplay.innerText = displayTime + "s";
+        }
+
+        if (state.timeLeft <= 0) {
+            handleGameOver();
+        }
+    }, 10); // We still run at 10ms for smoothness, but the MATH is now bulletproof
+
+    requestAnimationFrame(() => {
+        buildLevel();
+    });
 }
