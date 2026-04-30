@@ -193,61 +193,64 @@ function updatePathTracing() {
     let isBlocked = false;
     let reachedEnd = false;
 
-    // 2. Trace the signal from the start (Index 0)
+    // 2. Count how many nodes MUST be used (all nodes that are NOT currently broken)
+    const totalFunctionalNodes = state.grid.filter(cell => !cell.isBroken).length;
+
+    // 3. Trace the signal
     while (currIdx !== null) {
         nodes[currIdx].classList.add('active');
         visited.add(currIdx);
 
-        // If the path hits a broken node, it stops visually. 
-        // It won't trigger the "Win" because isBlocked becomes true.
+        // Stop if we hit a broken (red) node
         if (state.grid[currIdx].isBroken) {
             isBlocked = true;
             break; 
         }
 
-        // 3. WIN CHECK: If we hit the exit (Index 35) and the path is clear
+        // 4. Check for Exit
         if (currIdx === 35 && !isBlocked) {
             reachedEnd = true;
-            // The moment we hit index 35 without hitting a 'broken' node, we win.
-            if (state.timeLeft < config.timerMax) {
-                handleWin();
+            
+            // CHECK: Does the number of nodes in our path equal the number of available nodes?
+            if (visited.size === totalFunctionalNodes) {
+                // SUCCESS: All empty nodes used
+                if (state.timeLeft < config.timerMax) {
+                    handleWin();
+                }
+            } else {
+                // ERROR: Path reached end but skipped some nodes
+                // We keep the status updated but only play the sound once
+                if (statusDisplay.innerText !== "INCOMPLETE CIRCUIT: ALL NODES MUST BE LINKED") {
+                    if (sounds.error) {
+                        sounds.error.currentTime = 0;
+                        sounds.error.play().catch(() => {});
+                    }
+                    statusDisplay.innerText = "INCOMPLETE CIRCUIT: ALL NODES MUST BE LINKED";
+                    statusDisplay.style.color = "#ffaa00";
+                }
             }
-            return; 
+            break; 
         }
 
-        // 4. Calculate Next Move
+        // 5. Calculate Next Move
         let x = currIdx % 6;
         let y = Math.floor(currIdx / 6);
         let direction = state.grid[currIdx].dir;
 
-        if (direction === 0) y--;      // Up
-        else if (direction === 1) x++; // Right
-        else if (direction === 2) y++; // Down
-        else if (direction === 3) x--; // Left
+        if (direction === 0) y--;
+        else if (direction === 1) x++;
+        else if (direction === 2) y++;
+        else if (direction === 3) x--;
 
-        // Boundary Check
         if (x < 0 || x >= 6 || y < 0 || y >= 6) break;
-
         let nextIdx = y * 6 + x;
-
-        // Loop prevention
         if (visited.has(nextIdx)) break;
-
+        
         currIdx = nextIdx;
     }
 
-    // 5. ERROR FEEDBACK: Only if the path hits the exit but is blocked by a red node
-    // (This usually happens if the logic somehow bypasses, but with the 'break' above, 
-    // it's mostly a safety net).
-    if (reachedEnd && isBlocked) {
-        if (!statusDisplay.innerText.includes("INCOMPLETE")) {
-            if (sounds.error) sounds.error.play().catch(() => {});
-            statusDisplay.innerText = "INCOMPLETE CIRCUIT: REPAIR REQUIRED";
-            statusDisplay.style.color = "#ffaa00";
-        }
-    }
-
-    // 6. CLEAR ERRORS: If they move the path away from the end
+    // 6. SILENT RESET: If they move away from the exit or break the path, 
+    // clear the error message so it's not annoying.
     if (!reachedEnd && state.isActive && statusDisplay.innerText.includes("INCOMPLETE")) {
         statusDisplay.innerText = "SIGNAL TRACE ACTIVE";
         statusDisplay.style.color = "#00ff41";
