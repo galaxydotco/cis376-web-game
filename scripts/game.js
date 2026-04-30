@@ -10,6 +10,20 @@ import { Storage } from './storage.js';
 const config = { size: 6, timerMax: 30, arrows: ['↑', '→', '↓', '←'] };
 let state = { grid: [], timeLeft: config.timerMax, isActive: false, timerInterval: null };
 
+// --- AUDIO ENGINE ---
+const sounds = {
+    start: new Audio('assets/start.mp3'),
+    win: new Audio('assets/win.mp3'),
+    fail: new Audio('assets/fail.mp3'),
+    error: new Audio('assets/error.mp3'),
+    clickUpDn: new Audio('assets/click_vertical.mp3'), // For ↑ and ↓
+    clickLeft: new Audio('assets/click_left.mp3'),     // For ←
+    clickRight: new Audio('assets/click_right.mp3')    // For →
+};
+
+// Set volumes (optional)
+Object.values(sounds).forEach(s => s.volume = 0.3);
+
 // --- 1. GLOBAL DOM CACHE ---
 // We define these here so EVERY function can see them
 const statusDisplay = document.getElementById('status');
@@ -23,6 +37,18 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function init() {
+    playerForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const nameInput = document.getElementById('username');
+        if (nameInput && nameInput.value.length >= 3) {
+            sounds.start.play(); // PLAY START SOUND
+            Storage.saveUser(nameInput.value);
+            if (displayName) displayName.innerText = nameInput.value;
+            startNewGame();
+        }
+        // ...
+    });
+
     // Fetch Global Leaderboard
     Storage.getGlobalLeaderboard((scores) => {
         if (!leaderboardContainer) return;
@@ -84,10 +110,14 @@ function startNewGame() {
     state.timerInterval = setInterval(() => {
         state.timeLeft -= 0.01;
         if (timerDisplay) timerDisplay.innerText = state.timeLeft.toFixed(2) + "s";
-        
+
         if (state.timeLeft <= 0) {
             clearInterval(state.timerInterval);
             state.isActive = false;
+
+            // --- PLAY FAIL SOUND HERE ---
+            sounds.fail.play();
+
             if (statusDisplay) {
                 statusDisplay.innerText = "CONNECTION TERMINATED";
                 statusDisplay.style.color = "#ff0041";
@@ -112,8 +142,8 @@ function startNewGame() {
     }
 
     // 4. Build Board and Trace Initial Path (ONLY ONCE)
-    buildLevel(); 
-    updatePathTracing(); 
+    buildLevel();
+    updatePathTracing();
 }
 
 function buildLevel() {
@@ -144,20 +174,29 @@ function renderBoard(board) {
             if (!state.isActive) return;
 
             if (cell.isBroken) {
-                // --- ANTI-CHEESE LOGIC ---
-                // Only allow repair if the path is currently touching this node
                 if (!div.classList.contains('active')) {
-                    if (statusDisplay) {
-                        statusDisplay.innerText = "SYSTEM LINK REQUIRED FOR REPAIR";
-                        statusDisplay.style.color = "#ff0041";
-                    }
-                    return; 
+                    sounds.error.play(); // PLAY ERROR SOUND (Link required)
+                    // ... repair block logic
+                    return;
                 }
                 cell.isBroken = false;
                 div.classList.remove('broken');
             } else {
                 cell.dir = (cell.dir + 1) % 4;
                 div.innerText = config.arrows[cell.dir];
+
+                // DIRECTIONAL SOUND LOGIC
+                // 0: ↑, 1: →, 2: ↓, 3: ←
+                if (cell.dir === 0 || cell.dir === 2) {
+                    sounds.clickUpDn.currentTime = 0;
+                    sounds.clickUpDn.play();
+                } else if (cell.dir === 1) {
+                    sounds.clickRight.currentTime = 0;
+                    sounds.clickRight.play();
+                } else if (cell.dir === 3) {
+                    sounds.clickLeft.currentTime = 0;
+                    sounds.clickLeft.play();
+                }
             }
             updatePathTracing();
         };
@@ -176,7 +215,7 @@ function updatePathTracing() {
 
     while (currIdx !== null) {
         nodes[currIdx].classList.add('active');
-        
+
         // --- THE WIN CHECK ---
         if (currIdx === 35) {
             // We only trigger the win if the timer has actually started (to prevent 0.00s)
@@ -185,28 +224,33 @@ function updatePathTracing() {
             }
             return;
         }
-        
+
         // If the path hits a broken node, it stops here.
         // This is why "Active-Only Repair" works—the path "stops" on the broken node,
         // making it 'active' so the player can fix it.
         if (state.grid[currIdx].isBroken) {
             if (statusDisplay) {
+                // Only play the error sound if the message wasn't already showing
+                // This prevents the sound from "machine-gunning" every time the path updates
+                if (statusDisplay.innerText !== "SIGNAL BLOCKED: REPAIR REQUIRED") {
+                    sounds.error.play();
+                }
                 statusDisplay.innerText = "SIGNAL BLOCKED: REPAIR REQUIRED";
                 statusDisplay.style.color = "#ff0041";
             }
             break;
         }
-        
+
         visited.add(currIdx);
         let x = currIdx % 6;
         let y = Math.floor(currIdx / 6);
         let direction = state.grid[currIdx].dir;
-        
+
         if (direction === 0) y--;
         else if (direction === 1) x++;
         else if (direction === 2) y++;
         else if (direction === 3) x--;
-        
+
         if (x < 0 || x >= 6 || y < 0 || y >= 6) break;
         let nextIdx = y * 6 + x;
         if (visited.has(nextIdx)) break;
@@ -218,6 +262,7 @@ async function handleWin() {
     // If the game isn't active or the timer hasn't even started, ignore the win
     if (!state.isActive || state.timeLeft >= config.timerMax) return;
 
+    sounds.win.play(); // PLAY WIN SOUND
     state.isActive = false;
     clearInterval(state.timerInterval);
 
