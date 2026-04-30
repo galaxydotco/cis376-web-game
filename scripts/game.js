@@ -10,7 +10,6 @@ import { Storage } from './storage.js';
 const config = { size: 6, timerMax: 30, arrows: ['↑', '→', '↓', '←'] };
 let state = { grid: [], timeLeft: config.timerMax, isActive: false, timerInterval: null, hasMoved: false };
 
-// --- 1. AUDIO LIBRARY ---
 const sounds = {
     egg_pink: new Audio('assets/pink_spawn.mp3'),
     egg_rainbow: new Audio('assets/rainbow_spawn.mp3'),
@@ -25,7 +24,6 @@ const sounds = {
 
 Object.values(sounds).forEach(s => { s.volume = 0.3; s.preload = 'auto'; });
 
-// Improved Unlocker
 function unlockAudio() {
     Object.values(sounds).forEach(sound => {
         sound.muted = true;
@@ -58,7 +56,6 @@ function init() {
             if (nameInput && nameInput.value.length >= 3) {
                 Storage.saveUser(nameInput.value);
                 if (displayName) displayName.innerText = nameInput.value;
-                // Give the browser 100ms to handle the audio unlock before starting
                 setTimeout(startNewGame, 100);
             }
         });
@@ -104,7 +101,6 @@ async function startNewGame() {
     document.body.classList.remove('theme-pink', 'theme-rainbow');
     const roll = Math.random();
     
-    // Choose the sound to play
     let startSound = sounds.start;
     if (roll < 0.10) {
         document.body.classList.add('theme-pink');
@@ -121,21 +117,17 @@ async function startNewGame() {
         }
     }
 
-    // PLAY SOUND FIRST
     try {
         startSound.currentTime = 0;
         await startSound.play();
-    } catch (e) { console.warn("Audio Context busy:", e); }
+    } catch (e) {}
 
-    // Start Timer
     state.timerInterval = setInterval(() => {
         state.timeLeft -= 0.01;
         if (timerDisplay) timerDisplay.innerText = state.timeLeft.toFixed(2) + "s";
         if (state.timeLeft <= 0) handleGameOver();
     }, 10);
 
-    // DELAY LEVEL BUILD: This prevents the audio from glitching 
-    // while the browser tries to render the grid.
     requestAnimationFrame(() => {
         buildLevel();
     });
@@ -188,8 +180,6 @@ function renderBoard(board) {
                 s.currentTime = 0;
                 s.play().catch(() => {});
             }
-            
-            // Fast recalculation
             updatePathTracing();
         };
         board.appendChild(div);
@@ -226,12 +216,23 @@ function updatePathTracing() {
     }
 
     const brokenRemaining = state.grid.filter(c => c.isBroken).length;
-    if (reachedEnd && brokenRemaining === 0) {
-        handleWin();
-    } else if (reachedEnd && brokenRemaining > 0) {
-        // Error sound only triggers if they actively try to win with broken nodes
-        sounds.error.currentTime = 0;
-        sounds.error.play().catch(() => {});
+    
+    // RESET STATUS COLOR if they move away from the exit
+    if (!reachedEnd && statusDisplay.innerText.includes("INCOMPLETE")) {
+        statusDisplay.innerText = "SIGNAL TRACE ACTIVE";
+        statusDisplay.style.color = "#00ff41";
+    }
+
+    if (reachedEnd) {
+        if (brokenRemaining === 0) {
+            handleWin();
+        } else {
+            // FIXED: Message now correctly warns about remaining nodes
+            statusDisplay.innerText = `INCOMPLETE: ${brokenRemaining} NODES REMAINING`;
+            statusDisplay.style.color = "#ffaa00";
+            sounds.error.currentTime = 0;
+            sounds.error.play().catch(() => {});
+        }
     }
 }
 
@@ -245,15 +246,24 @@ async function handleWin() {
 
     const timeTaken = parseFloat((config.timerMax - state.timeLeft).toFixed(2));
     
-    Storage.getGlobalLeaderboard(async (scores) => {
-        const totalPlayers = scores.length;
-        const slowerPlayers = scores.filter(s => s.score > timeTaken).length;
-        const percentile = totalPlayers > 0 ? ((slowerPlayers / totalPlayers) * 100).toFixed(0) : 100;
+    // Save first, then calculate percentile based on updated leaderboard
+    await Storage.saveGlobalScore(Storage.getUser(), timeTaken);
 
-        statusDisplay.innerText = `ACCESS GRANTED: TOP ${100 - percentile}% SPEED`;
+    Storage.getGlobalLeaderboard((scores) => {
+        const totalEntries = scores.length;
+        // Count how many scores are GREATER than yours (you were faster)
+        const slowerCount = scores.filter(s => s.score > timeTaken).length;
+        
+        // Percentile Formula: (Slower People / Total People) * 100
+        // If you are the fastest, 100% of people are slower than you.
+        let percentile = (slowerCount / totalEntries) * 100;
+        
+        // We want to show "Top X%", so 100 - percentile
+        let topPercent = Math.max(1, 100 - Math.floor(percentile));
+
+        statusDisplay.innerText = `ACCESS GRANTED: TOP ${topPercent}% SPEED`;
         statusDisplay.style.color = "#00ff41";
-
-        await Storage.saveGlobalScore(Storage.getUser(), timeTaken);
+        
         renderLeaderboard();
     });
 }
