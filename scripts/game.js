@@ -121,6 +121,29 @@ function buildLevel() {
 }
 
 function renderBoard(board) {
+    div.onclick = (e) => {
+        e.preventDefault();
+        if (!state.isActive) return;
+
+        if (cell.isBroken) {
+            // Only allow repair if the path is currently hitting this node
+            if (!div.classList.contains('active')) {
+                statusDisplay.innerText = "SYSTEM LINK REQUIRED FOR REPAIR";
+                statusDisplay.style.color = "#ff0041";
+                return;
+            }
+
+            cell.isBroken = false;
+            div.classList.remove('broken');
+            statusDisplay.innerText = "NODE REPAIRED";
+            statusDisplay.style.color = "#00ff41";
+        } else {
+            cell.dir = (cell.dir + 1) % 4;
+            div.innerText = config.arrows[cell.dir];
+        }
+        updatePathTracing();
+    };
+
     state.grid.forEach(cell => {
         const div = document.createElement('div');
         div.className = 'node';
@@ -146,6 +169,22 @@ function renderBoard(board) {
 }
 
 function updatePathTracing() {
+    if (currIdx === 35) {
+        const unrepairedNodes = state.grid.filter(cell => cell.isBroken);
+
+        // Check if board is clean AND path is long enough (e.g., at least 10 nodes)
+        if (unrepairedNodes.length === 0 && visited.size >= 10) {
+            handleWin();
+            return;
+        } else if (unrepairedNodes.length > 0) {
+            statusDisplay.innerText = `REPAIR REMAINING NODES: ${unrepairedNodes.length} LEFT`;
+        } else {
+            // Path is too short
+            statusDisplay.innerText = `SIGNAL STRENGTH TOO LOW: ${visited.size}/10 HOPS`;
+            statusDisplay.style.color = "#ff0041";
+        }
+        return;
+    }
     const nodes = document.querySelectorAll('.node');
     const statusDisplay = document.getElementById('status');
     if (!nodes.length) return;
