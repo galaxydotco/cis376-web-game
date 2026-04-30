@@ -193,65 +193,65 @@ function updatePathTracing() {
     let isBlocked = false;
     let reachedEnd = false;
 
-    // 2. Count how many nodes MUST be used (all nodes that are NOT currently broken)
-    const totalFunctionalNodes = state.grid.filter(cell => !cell.isBroken).length;
+    // 2. WIN REQUIREMENT: 
+    // We count every node that is NOT broken. 
+    // These are the "Empty" nodes you must intersect.
+    const totalEmptyNodes = state.grid.filter(cell => !cell.isBroken).length;
 
-    // 3. Trace the signal
+    // 3. Trace the signal from Start (0)
     while (currIdx !== null) {
         nodes[currIdx].classList.add('active');
         visited.add(currIdx);
 
-        // Stop if we hit a broken (red) node
+        // If the path hits a broken node, tracing stops.
         if (state.grid[currIdx].isBroken) {
             isBlocked = true;
             break; 
         }
 
-        // 4. Check for Exit
-        if (currIdx === 35 && !isBlocked) {
+        // 4. Check for Exit (35)
+        if (currIdx === 35) {
             reachedEnd = true;
-            
-            // CHECK: Does the number of nodes in our path equal the number of available nodes?
-            if (visited.size === totalFunctionalNodes) {
-                // SUCCESS: All empty nodes used
-                if (state.timeLeft < config.timerMax) {
-                    handleWin();
-                }
-            } else {
-                // ERROR: Path reached end but skipped some nodes
-                // We keep the status updated but only play the sound once
-                if (statusDisplay.innerText !== "INCOMPLETE CIRCUIT: ALL NODES MUST BE LINKED") {
-                    if (sounds.error) {
-                        sounds.error.currentTime = 0;
-                        sounds.error.play().catch(() => {});
-                    }
-                    statusDisplay.innerText = "INCOMPLETE CIRCUIT: ALL NODES MUST BE LINKED";
-                    statusDisplay.style.color = "#ffaa00";
-                }
-            }
-            break; 
+            break; // Stop the loop so we can evaluate the win condition
         }
 
-        // 5. Calculate Next Move
+        // 5. Calculate Next Index
         let x = currIdx % 6;
         let y = Math.floor(currIdx / 6);
         let direction = state.grid[currIdx].dir;
 
-        if (direction === 0) y--;
-        else if (direction === 1) x++;
-        else if (direction === 2) y++;
-        else if (direction === 3) x--;
+        if (direction === 0) y--;      // ↑
+        else if (direction === 1) x++; // →
+        else if (direction === 2) y++; // ↓
+        else if (direction === 3) x--; // ←
 
         if (x < 0 || x >= 6 || y < 0 || y >= 6) break;
         let nextIdx = y * 6 + x;
-        if (visited.has(nextIdx)) break;
+        if (visited.has(nextIdx)) break; // Loop protection
         
         currIdx = nextIdx;
     }
 
-    // 6. SILENT RESET: If they move away from the exit or break the path, 
-    // clear the error message so it's not annoying.
-    if (!reachedEnd && state.isActive && statusDisplay.innerText.includes("INCOMPLETE")) {
+    // 6. FINAL WIN EVALUATION
+    if (reachedEnd && !isBlocked) {
+        // Did the path hit every single non-broken node on the board?
+        if (visited.size === totalEmptyNodes) {
+            if (state.timeLeft < config.timerMax) {
+                handleWin();
+            }
+        } else {
+            // Reached end but skipped some empty nodes
+            if (statusDisplay.innerText !== "INCOMPLETE CIRCUIT: MUST INTERSECT ALL EMPTY NODES") {
+                if (sounds.error) {
+                    sounds.error.currentTime = 0;
+                    sounds.error.play().catch(() => {});
+                }
+                statusDisplay.innerText = "INCOMPLETE CIRCUIT: MUST INTERSECT ALL EMPTY NODES";
+                statusDisplay.style.color = "#ffaa00";
+            }
+        }
+    } else if (!reachedEnd && state.isActive && statusDisplay.innerText.includes("INCOMPLETE")) {
+        // Reset status if they move away from the end
         statusDisplay.innerText = "SIGNAL TRACE ACTIVE";
         statusDisplay.style.color = "#00ff41";
     }
