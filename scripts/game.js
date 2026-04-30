@@ -202,12 +202,12 @@ function updatePathTracing() {
     let visited = new Set();
     let isBlocked = false;
 
-    // 2. Trace the signal
+    // 2. Trace the signal from the start (Index 0)
     while (currIdx !== null) {
         nodes[currIdx].classList.add('active');
         visited.add(currIdx);
 
-        // If we hit a broken node, the trace stops here
+        // If the path hits a broken node, stop immediately
         if (state.grid[currIdx].isBroken) {
             isBlocked = true;
             if (statusDisplay.innerText !== "SIGNAL BLOCKED: REPAIR REQUIRED") {
@@ -218,22 +218,13 @@ function updatePathTracing() {
             break; 
         }
 
-        // 3. THE "STRICT PATH" WIN CHECK
+        // 3. WIN CHECK: If we hit the exit (Index 35) and didn't hit a break
         if (currIdx === 35 && !isBlocked) {
-            // Check if every working (non-broken) node is in our 'visited' set
-            const totalFunctionalNodes = state.grid.filter(cell => !cell.isBroken).length;
-            
-            if (visited.size === totalFunctionalNodes) {
-                // PERFECT PATH: Reach end + used all nodes
-                if (state.timeLeft < config.timerMax) {
-                    handleWin();
-                }
-            } else {
-                // BYPASS DETECTED: Reached end but left blanks behind
-                statusDisplay.innerText = "INCOMPLETE CIRCUIT: LEAK DETECTED";
-                statusDisplay.style.color = "#ffaa00";
+            // We only trigger the win if the timer has actually started
+            if (state.timeLeft < config.timerMax) {
+                handleWin();
             }
-            return;
+            return; // Exit function so we don't overwrite the "RECOVERED" text
         }
 
         // 4. Calculate Next Move
@@ -241,17 +232,36 @@ function updatePathTracing() {
         let y = Math.floor(currIdx / 6);
         let direction = state.grid[currIdx].dir;
 
+        // 0: ↑, 1: →, 2: ↓, 3: ←
         if (direction === 0) y--;
         else if (direction === 1) x++;
         else if (direction === 2) y++;
         else if (direction === 3) x--;
 
-        if (x < 0 || x >= 6 || y < 0 || y >= 6) break;
+        // Boundary Check (If path goes off-screen)
+        if (x < 0 || x >= 6 || y < 0 || y >= 6) {
+            if (statusDisplay) {
+                statusDisplay.innerText = "SIGNAL LOST: OUT OF BOUNDS";
+                statusDisplay.style.color = "#ffaa00";
+            }
+            break;
+        }
+
         let nextIdx = y * 6 + x;
-        if (visited.has(nextIdx)) break;
+
+        // Loop prevention (If the path circles back on itself)
+        if (visited.has(nextIdx)) {
+            if (statusDisplay) {
+                statusDisplay.innerText = "SIGNAL LOOP DETECTED";
+                statusDisplay.style.color = "#ffaa00";
+            }
+            break;
+        }
+
         currIdx = nextIdx;
     }
 }
+
 async function handleWin() {
     if (!state.isActive || state.timeLeft >= config.timerMax) return;
 
