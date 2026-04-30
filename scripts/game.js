@@ -200,10 +200,14 @@ function updatePathTracing() {
     let visited = new Set();
     let isBlocked = false;
 
+    // --- NEW: Calculate how many nodes SHOULD be in the path ---
+    // We count every node that is NOT broken.
+    const totalValidNodes = state.grid.filter(cell => !cell.isBroken).length;
+
     while (currIdx !== null) {
         nodes[currIdx].classList.add('active');
+        visited.add(currIdx); // Add current node to our path count
 
-        // BYPASS PROTECTION: If path hits a broken node, it stops completely.
         if (state.grid[currIdx].isBroken) {
             isBlocked = true;
             if (statusDisplay.innerText !== "SIGNAL BLOCKED: REPAIR REQUIRED") {
@@ -214,15 +218,21 @@ function updatePathTracing() {
             break; 
         }
 
-        // WIN CHECK: Path reaches end AND isn't blocked.
         if (currIdx === 35 && !isBlocked) {
-            if (state.timeLeft < config.timerMax) {
-                handleWin();
+            // --- UPDATED WIN CONDITION ---
+            // Only win if the number of visited nodes equals the number of non-broken nodes
+            if (visited.size === totalValidNodes) {
+                if (state.timeLeft < config.timerMax) {
+                    handleWin();
+                }
+            } else {
+                // The path reached the end, but skipped some nodes!
+                statusDisplay.innerText = `INCOMPLETE TRACE: ${totalValidNodes - visited.size} NODES LEAKING`;
+                statusDisplay.style.color = "#ffaa00"; // Orange for "almost there"
             }
             return;
         }
 
-        visited.add(currIdx);
         let x = currIdx % 6;
         let y = Math.floor(currIdx / 6);
         let direction = state.grid[currIdx].dir;
@@ -238,7 +248,6 @@ function updatePathTracing() {
         currIdx = nextIdx;
     }
 }
-
 async function handleWin() {
     if (!state.isActive || state.timeLeft >= config.timerMax) return;
 
