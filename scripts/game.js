@@ -156,6 +156,7 @@ function renderBoard(board) {
             if (!state.isActive) return;
 
             if (cell.isBroken) {
+                // Repairs only happen if the path is currently touching the node
                 if (!div.classList.contains('active')) return; 
                 cell.isBroken = false;
                 div.classList.remove('broken');
@@ -184,25 +185,22 @@ function updatePathTracing() {
     const nodes = document.querySelectorAll('.node');
     if (!nodes.length || !statusDisplay || !state.isActive) return;
 
-    // Reset visual path
+    // Reset all nodes visually
     nodes.forEach(n => n.classList.remove('active'));
     
     let currIdx = 0;
     let visited = new Set();
-    let isBlocked = false;
     let reachedEnd = false;
 
-    // 1. Trace the current path from the start
+    // 1. Trace the signal from the start
     while (currIdx !== null) {
-        const nodeEl = nodes[currIdx];
-        nodeEl.classList.add('active');
+        nodes[currIdx].classList.add('active');
         visited.add(currIdx);
 
-        if (state.grid[currIdx].isBroken) {
-            isBlocked = true;
-            break; 
-        }
+        // Path stops if it hits a broken node
+        if (state.grid[currIdx].isBroken) break; 
 
+        // Path stops if it hits the exit
         if (currIdx === 35) {
             reachedEnd = true;
             break; 
@@ -223,28 +221,30 @@ function updatePathTracing() {
         currIdx = nextIdx;
     }
 
-    // 2. WIN CONDITION CHECK
-    // Check if there are any EMPTY (not broken) nodes that are NOT in the active path
-    const unvisitedEmptyNodes = state.grid.filter(cell => !cell.isBroken && !visited.has(cell.id));
+    // 2. THE WIN CONDITION CALCULATOR
+    // We count EVERY node on the board that is NOT red (broken)
+    const totalEmptyNodesOnBoard = state.grid.filter(cell => !cell.isBroken).length;
+    // We count how many of those are currently glowing green (visited)
+    const emptyNodesInPath = Array.from(visited).filter(id => !state.grid[id].isBroken).length;
 
-    if (reachedEnd && !isBlocked) {
-        if (unvisitedEmptyNodes.length === 0) {
-            // Success: Path hits exit AND all empty nodes are part of the path
+    if (reachedEnd) {
+        if (emptyNodesInPath === totalEmptyNodesOnBoard) {
+            // SUCCESS: Reached end AND path contains all empty nodes
             handleWin();
         } else {
-            // Error: Path hits exit but skipped some empty nodes
+            // FAILURE: Reached end but skipped some grey nodes
             if (!statusDisplay.innerText.includes("INCOMPLETE")) {
                 if (sounds.error) {
                     sounds.error.currentTime = 0;
                     sounds.error.play().catch(() => {});
                 }
-                statusDisplay.innerText = "INCOMPLETE CIRCUIT: ALL EMPTY NODES MUST BE FILLED";
+                statusDisplay.innerText = "INCOMPLETE CIRCUIT: ALL NODES MUST BE LINKED";
                 statusDisplay.style.color = "#ffaa00";
             }
         }
     } else {
-        // Clear error message if path is no longer touching the exit
-        if (state.isActive && statusDisplay.innerText.includes("INCOMPLETE")) {
+        // Reset status if they move away from the exit
+        if (statusDisplay.innerText.includes("INCOMPLETE")) {
             statusDisplay.innerText = "SIGNAL TRACE ACTIVE";
             statusDisplay.style.color = "#00ff41";
         }
