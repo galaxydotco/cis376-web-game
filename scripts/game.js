@@ -62,6 +62,7 @@ function init() {
         playerForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const nameInput = document.getElementById('username');
+            // If you don't enter at least 3 characters, the game will not start!
             if (nameInput && nameInput.value.length >= 3) {
                 Storage.saveUser(nameInput.value);
                 if (displayName) displayName.innerText = nameInput.value;
@@ -156,16 +157,15 @@ function renderBoard(board) {
             if (!state.isActive) return;
 
             if (cell.isBroken) {
-                // IMPORTANT: We only allow repair if the path is currently touching it
+                // Repair only if the green path is touching it
                 if (!div.classList.contains('active')) return; 
-                
                 cell.isBroken = false;
                 div.classList.remove('broken');
-                // We update tracing immediately after the state change
             } else {
                 cell.dir = (cell.dir + 1) % 4;
                 div.innerText = config.arrows[cell.dir];
 
+                // Play directional sounds
                 if (cell.dir === 0 || cell.dir === 2) {
                     sounds.clickUpDn.currentTime = 0;
                     sounds.clickUpDn.play().catch(() => {});
@@ -187,151 +187,61 @@ function updatePathTracing() {
     const nodes = document.querySelectorAll('.node');
     if (!nodes.length || !statusDisplay || !state.isActive) return;
 
-    // 1. Clear previous visual path
     nodes.forEach(n => n.classList.remove('active'));
     
     let currIdx = 0;
     let visited = new Set();
     let reachedEnd = false;
 
-    // 2. Trace the signal
     while (currIdx !== null) {
-        // If we hit a broken node, the "active" green line stops HERE.
+        // Stop the green line at a broken node, but light it up for repair
         if (state.grid[currIdx].isBroken) {
-            nodes[currIdx].classList.add('active'); // Light it up so player can click to fix
+            nodes[currIdx].classList.add('active');
             break; 
         }
 
         nodes[currIdx].classList.add('active');
         visited.add(currIdx);
 
-        // Check if we reached the exit
         if (currIdx === 35) {
             reachedEnd = true;
             break; 
         }
 
-        // Calculate next movement
         let x = currIdx % 6;
         let y = Math.floor(currIdx / 6);
         let direction = state.grid[currIdx].dir;
 
-        if (direction === 0) y--;      // Up
-        else if (direction === 1) x++; // Right
-        else if (direction === 2) y++; // Down
-        else if (direction === 3) x--; // Left
+        if (direction === 0) y--;
+        else if (direction === 1) x++;
+        else if (direction === 2) y++;
+        else if (direction === 3) x--;
 
         if (x < 0 || x >= 6 || y < 0 || y >= 6) break;
-        
         let nextIdx = y * 6 + x;
-        if (visited.has(nextIdx)) break; // Loop protection
-        
+        if (visited.has(nextIdx)) break;
         currIdx = nextIdx;
     }
 
-    // 3. THE FINAL VERIFICATION
-    // Count every node on the board that is NOT broken (the "Required" nodes)
+    // WIN CONDITION: Path length must match the count of non-broken nodes
     const requiredNodes = state.grid.filter(cell => !cell.isBroken).length;
-    // Count how many nodes our green path actually successfully visited
     const pathCount = visited.size;
 
     if (reachedEnd) {
         if (pathCount === requiredNodes) {
-            // SUCCESS: Every single empty node is now green and we are at the exit
             handleWin();
         } else {
-            // FAILURE: You touched the exit, but missed some nodes.
             if (!statusDisplay.innerText.includes("INCOMPLETE")) {
                 if (sounds.error) {
                     sounds.error.currentTime = 0;
                     sounds.error.play().catch(() => {});
                 }
-                // Tell the player exactly how many nodes are missing
                 const missing = requiredNodes - pathCount;
                 statusDisplay.innerText = `INCOMPLETE CIRCUIT: ${missing} NODE(S) MISSING`;
                 statusDisplay.style.color = "#ffaa00";
             }
         }
     } else {
-        // Silent reset of the status message if the path is moved away from the exit
-        if (state.isActive && statusDisplay.innerText.includes("INCOMPLETE")) {
-            statusDisplay.innerText = "SIGNAL TRACE ACTIVE";
-            statusDisplay.style.color = "#00ff41";
-        }
-    }
-}
-
-function updatePathTracing() {
-    const nodes = document.querySelectorAll('.node');
-    if (!nodes.length || !statusDisplay || !state.isActive) return;
-
-    // 1. Clear previous visual path
-    nodes.forEach(n => n.classList.remove('active'));
-    
-    let currIdx = 0;
-    let visited = new Set();
-    let reachedEnd = false;
-
-    // 2. Trace the signal
-    while (currIdx !== null) {
-        // If we hit a broken node, the "active" green line stops HERE.
-        if (state.grid[currIdx].isBroken) {
-            nodes[currIdx].classList.add('active'); // Light it up so player can click to fix
-            break; 
-        }
-
-        nodes[currIdx].classList.add('active');
-        visited.add(currIdx);
-
-        // Check if we reached the exit
-        if (currIdx === 35) {
-            reachedEnd = true;
-            break; 
-        }
-
-        // Calculate next movement
-        let x = currIdx % 6;
-        let y = Math.floor(currIdx / 6);
-        let direction = state.grid[currIdx].dir;
-
-        if (direction === 0) y--;      // Up
-        else if (direction === 1) x++; // Right
-        else if (direction === 2) y++; // Down
-        else if (direction === 3) x--; // Left
-
-        if (x < 0 || x >= 6 || y < 0 || y >= 6) break;
-        
-        let nextIdx = y * 6 + x;
-        if (visited.has(nextIdx)) break; // Loop protection
-        
-        currIdx = nextIdx;
-    }
-
-    // 3. THE FINAL VERIFICATION
-    // Count every node on the board that is NOT broken (the "Required" nodes)
-    const requiredNodes = state.grid.filter(cell => !cell.isBroken).length;
-    // Count how many nodes our green path actually successfully visited
-    const pathCount = visited.size;
-
-    if (reachedEnd) {
-        if (pathCount === requiredNodes) {
-            // SUCCESS: Every single empty node is now green and we are at the exit
-            handleWin();
-        } else {
-            // FAILURE: You touched the exit, but missed some nodes.
-            if (!statusDisplay.innerText.includes("INCOMPLETE")) {
-                if (sounds.error) {
-                    sounds.error.currentTime = 0;
-                    sounds.error.play().catch(() => {});
-                }
-                // Tell the player exactly how many nodes are missing
-                const missing = requiredNodes - pathCount;
-                statusDisplay.innerText = `INCOMPLETE CIRCUIT: ${missing} NODE(S) MISSING`;
-                statusDisplay.style.color = "#ffaa00";
-            }
-        }
-    } else {
-        // Silent reset of the status message if the path is moved away from the exit
         if (state.isActive && statusDisplay.innerText.includes("INCOMPLETE")) {
             statusDisplay.innerText = "SIGNAL TRACE ACTIVE";
             statusDisplay.style.color = "#00ff41";
