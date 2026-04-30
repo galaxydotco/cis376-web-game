@@ -10,16 +10,22 @@ import { Storage } from './storage.js';
 const config = { size: 6, timerMax: 30, arrows: ['↑', '→', '↓', '←'] };
 let state = { grid: [], timeLeft: config.timerMax, isActive: false, timerInterval: null };
 
+// --- 1. GLOBAL DOM CACHE ---
+// We define these here so EVERY function can see them
+const statusDisplay = document.getElementById('status');
+const timerDisplay = document.getElementById('timer');
+const displayName = document.getElementById('display-name');
+const highScoreEl = document.getElementById('high-score');
+const leaderboardContainer = document.getElementById('global-leaderboard');
+
 document.addEventListener('DOMContentLoaded', () => {
     init();
 });
 
 function init() {
+    // Fetch Global Leaderboard
     Storage.getGlobalLeaderboard((scores) => {
-        const leaderboardContainer = document.getElementById('global-leaderboard');
         if (!leaderboardContainer) return;
-
-        // Clear the "Loading" text
         leaderboardContainer.innerHTML = '';
 
         if (scores.length === 0) {
@@ -27,30 +33,24 @@ function init() {
             return;
         }
 
-        // Build the list
+        if (highScoreEl && scores[0]) {
+            highScoreEl.innerText = `${scores[0].score}s (${scores[0].username})`;
+        }
+
         scores.forEach((entry, index) => {
             const div = document.createElement('div');
             div.className = 'entry';
             div.innerHTML = `
-            <span>
-                <span class="rank">#${index + 1}</span>
-                ${entry.username.toUpperCase()}
-            </span>
-            <span>${entry.score.toFixed(2)}s</span>
-        `;
+                <span><span class="rank">#${index + 1}</span> ${entry.username.toUpperCase()}</span>
+                <span>${entry.score.toFixed(2)}s</span>
+            `;
             leaderboardContainer.appendChild(div);
         });
     });
 
-    // DOM cache
-    const playerForm = document.getElementById('player-form');
-    const navReset = document.getElementById('nav-reset');
-    const displayName = document.getElementById('display-name');
-    const highScore = document.getElementById('high-score');
-
     if (displayName) displayName.innerText = Storage.getUser();
-    if (highScore) highScore.innerText = Storage.getBestTime();
 
+    const playerForm = document.getElementById('player-form');
     if (playerForm) {
         playerForm.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -60,11 +60,12 @@ function init() {
                 if (displayName) displayName.innerText = nameInput.value;
                 startNewGame();
             } else {
-                playerForm.classList.add('was-validated'); // listener
+                playerForm.classList.add('was-validated');
             }
         });
     }
 
+    const navReset = document.getElementById('nav-reset');
     if (navReset) {
         navReset.addEventListener('click', (e) => {
             e.preventDefault();
@@ -74,9 +75,7 @@ function init() {
 }
 
 function startNewGame() {
-    const statusDisplay = document.getElementById('status');
-    const timerDisplay = document.getElementById('timer');
-
+    console.log("System Initializing..."); // Debug log
     clearInterval(state.timerInterval);
     state.isActive = true;
     state.timeLeft = config.timerMax;
@@ -109,7 +108,6 @@ function buildLevel() {
     if (!board) return;
     state.grid = [];
     board.innerHTML = '';
-    // create randomized items into each game instance
     for (let i = 0; i < 36; i++) {
         state.grid.push({
             id: i,
@@ -121,29 +119,6 @@ function buildLevel() {
 }
 
 function renderBoard(board) {
-    div.onclick = (e) => {
-        e.preventDefault();
-        if (!state.isActive) return;
-
-        if (cell.isBroken) {
-            // Only allow repair if the path is currently hitting this node
-            if (!div.classList.contains('active')) {
-                statusDisplay.innerText = "SYSTEM LINK REQUIRED FOR REPAIR";
-                statusDisplay.style.color = "#ff0041";
-                return;
-            }
-
-            cell.isBroken = false;
-            div.classList.remove('broken');
-            statusDisplay.innerText = "NODE REPAIRED";
-            statusDisplay.style.color = "#00ff41";
-        } else {
-            cell.dir = (cell.dir + 1) % 4;
-            div.innerText = config.arrows[cell.dir];
-        }
-        updatePathTracing();
-    };
-
     state.grid.forEach(cell => {
         const div = document.createElement('div');
         div.className = 'node';
@@ -154,7 +129,17 @@ function renderBoard(board) {
         div.onclick = (e) => {
             e.preventDefault();
             if (!state.isActive) return;
+
             if (cell.isBroken) {
+                // --- ANTI-CHEESE LOGIC ---
+                // Only allow repair if the path is currently touching this node
+                if (!div.classList.contains('active')) {
+                    if (statusDisplay) {
+                        statusDisplay.innerText = "SYSTEM LINK REQUIRED FOR REPAIR";
+                        statusDisplay.style.color = "#ff0041";
+                    }
+                    return; 
+                }
                 cell.isBroken = false;
                 div.classList.remove('broken');
             } else {
@@ -169,25 +154,8 @@ function renderBoard(board) {
 }
 
 function updatePathTracing() {
-    if (currIdx === 35) {
-        const unrepairedNodes = state.grid.filter(cell => cell.isBroken);
-
-        // Check if board is clean AND path is long enough (e.g., at least 10 nodes)
-        if (unrepairedNodes.length === 0 && visited.size >= 10) {
-            handleWin();
-            return;
-        } else if (unrepairedNodes.length > 0) {
-            statusDisplay.innerText = `REPAIR REMAINING NODES: ${unrepairedNodes.length} LEFT`;
-        } else {
-            // Path is too short
-            statusDisplay.innerText = `SIGNAL STRENGTH TOO LOW: ${visited.size}/10 HOPS`;
-            statusDisplay.style.color = "#ff0041";
-        }
-        return;
-    }
     const nodes = document.querySelectorAll('.node');
-    const statusDisplay = document.getElementById('status');
-    if (!nodes.length) return;
+    if (!nodes.length || !statusDisplay) return;
 
     nodes.forEach(n => n.classList.remove('active'));
     let currIdx = 0;
@@ -195,6 +163,7 @@ function updatePathTracing() {
 
     while (currIdx !== null) {
         nodes[currIdx].classList.add('active');
+        
         if (currIdx === 35) {
             const unrepairedNodes = state.grid.filter(cell => cell.isBroken);
             if (unrepairedNodes.length === 0) {
@@ -206,16 +175,19 @@ function updatePathTracing() {
                 return;
             }
         }
-        // carve path 
+        
         if (state.grid[currIdx].isBroken) break;
+        
         visited.add(currIdx);
         let x = currIdx % 6;
         let y = Math.floor(currIdx / 6);
         let direction = state.grid[currIdx].dir;
+        
         if (direction === 0) y--;
         else if (direction === 1) x++;
         else if (direction === 2) y++;
         else if (direction === 3) x--;
+        
         if (x < 0 || x >= 6 || y < 0 || y >= 6) break;
         let nextIdx = y * 6 + x;
         if (visited.has(nextIdx)) break;
@@ -231,26 +203,17 @@ async function handleWin() {
     const timeTaken = (config.timerMax - state.timeLeft).toFixed(2);
     const username = Storage.getUser();
 
-    // Save to Firebase
     await Storage.saveGlobalScore(username, timeTaken);
 
-    // Standard UI updates
-    statusDisplay.innerText = "ALL SYSTEMS RECOVERED - ACCESS GRANTED";
-    statusDisplay.style.color = "var(--clr-main)";
+    if (statusDisplay) {
+        statusDisplay.innerText = "ALL SYSTEMS RECOVERED - ACCESS GRANTED";
+        statusDisplay.style.color = "#00ff41";
+    }
 }
 
-// console hint easter egg
-console.log("%c[SYSTEM] Type 'noclip()' for infinite time.", "color: #00ff41; font-weight: bold;");
+// Console Easter Egg
 window.noclip = () => {
     clearInterval(state.timerInterval);
-    timerDisplay.innerText = "INF";
+    if (timerDisplay) timerDisplay.innerText = "INF";
     return "Cheat Engaged.";
 };
-
-Storage.getGlobalLeaderboard((scores) => {
-    const highScoreEl = document.getElementById('high-score');
-    // For now, let's just show the #1 global score in your BEST slot
-    if (scores.length > 0) {
-        highScoreEl.innerText = `${scores[0].score}s (${scores[0].username})`;
-    }
-});
