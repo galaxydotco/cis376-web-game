@@ -10,22 +10,21 @@ import { Storage } from './storage.js';
 const config = { size: 6, timerMax: 30, arrows: ['↑', '→', '↓', '←'] };
 let state = { grid: [], timeLeft: config.timerMax, isActive: false, timerInterval: null };
 
-// --- AUDIO ENGINE ---
+// --- 1. AUDIO LIBRARY ---
 const sounds = {
     start: new Audio('assets/start.mp3'),
     win: new Audio('assets/win.mp3'),
     fail: new Audio('assets/fail.mp3'),
-    error: new Audio('assets/error.mp3'),
-    clickUpDn: new Audio('assets/click_vertical.mp3'), // For ↑ and ↓
-    clickLeft: new Audio('assets/click_left.mp3'),     // For ←
-    clickRight: new Audio('assets/click_right.mp3')    // For →
+    error: new Audio('assets/error.mp3'), // <-- Ensure there is a comma here
+    clickUpDn: new Audio('assets/click_up_down.mp3'),
+    clickLeft: new Audio('assets/click_left.mp3'),
+    clickRight: new Audio('assets/click_right.mp3') // Last one doesn't need a comma
 };
 
 // Set volumes (optional)
 Object.values(sounds).forEach(s => s.volume = 0.3);
 
-// --- 1. GLOBAL DOM CACHE ---
-// We define these here so EVERY function can see them
+// --- 2. GLOBAL DOM CACHE ---
 const statusDisplay = document.getElementById('status');
 const timerDisplay = document.getElementById('timer');
 const displayName = document.getElementById('display-name');
