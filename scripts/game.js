@@ -244,22 +244,36 @@ async function handleWin() {
     sounds.win.currentTime = 0;
     sounds.win.play().catch(() => {});
 
-    const timeTaken = parseFloat((config.timerMax - state.timeLeft).toFixed(2));
+    // Ensure this is strictly a Number
+    const timeTaken = Number((config.timerMax - state.timeLeft).toFixed(2));
     
-    // Save first, then calculate percentile based on updated leaderboard
+    // Save to database first so our current run is included in the array
     await Storage.saveGlobalScore(Storage.getUser(), timeTaken);
 
     Storage.getGlobalLeaderboard((scores) => {
         const totalEntries = scores.length;
-        // Count how many scores are GREATER than yours (you were faster)
-        const slowerCount = scores.filter(s => s.score > timeTaken).length;
         
-        // Percentile Formula: (Slower People / Total People) * 100
-        // If you are the fastest, 100% of people are slower than you.
-        let percentile = (slowerCount / totalEntries) * 100;
+        // Find our rank (1st, 2nd, 3rd, etc.)
+        let myRank = 1;
+        for (let i = 0; i < scores.length; i++) {
+            // Force Number conversion to prevent string-math bugs
+            if (Number(scores[i].score) < timeTaken) {
+                myRank++;
+            }
+        }
         
-        // We want to show "Top X%", so 100 - percentile
-        let topPercent = Math.max(1, 100 - Math.floor(percentile));
+        // Percentile Math: (Your Rank / Total Players) * 100
+        let topPercent = Math.ceil((myRank / totalEntries) * 100);
+        
+        // Polish the display logic
+        if (totalEntries <= 1) {
+            topPercent = 1; // If you're the only player, you're Top 1%
+        } else if (myRank === 1) {
+            topPercent = 1; // The absolute fastest time is always Top 1%
+        }
+        
+        // Safety bounds just in case
+        topPercent = Math.max(1, Math.min(topPercent, 100));
 
         statusDisplay.innerText = `ACCESS GRANTED: TOP ${topPercent}% SPEED`;
         statusDisplay.style.color = "#00ff41";

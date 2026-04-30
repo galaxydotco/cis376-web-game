@@ -140,23 +140,25 @@ body.theme-rainbow .node {
     background: rgba(0, 255, 65, 0.2); /* Instant visual feedback on click */
 }
 
-/* Leaderboard #1 Highlight */
 .top-record-glow {
     border: 2px solid #00ff41;
     box-shadow: 0 0 15px rgba(0, 255, 65, 0.5);
     position: relative;
-    overflow: hidden;
+    margin-top: 10px; /* Gives the badge room to breathe */
+    /* Make sure you REMOVE 'overflow: hidden;' if you had it previously */
 }
 
 .top-record-glow::after {
     content: "NEW RECORD";
     position: absolute;
-    right: -20px;
-    top: 5px;
+    top: -10px; /* Pushes it up onto the top border */
+    left: 15px; /* Aligns it nicely to the left */
     background: #00ff41;
     color: #000;
-    font-size: 0.6rem;
+    font-size: 0.65rem;
     font-weight: bold;
-    padding: 2px 20px;
-    transform: rotate(45deg);
+    padding: 2px 8px;
+    border-radius: 3px;
+    letter-spacing: 1px;
+    transform: none; /* Removes the 45-degree rotation */
 }
