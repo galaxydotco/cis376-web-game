@@ -75,31 +75,28 @@ function init() {
 }
 
 function startNewGame() {
-    console.log("System Initializing...");
-    
     // 1. Reset state
     clearInterval(state.timerInterval);
     state.isActive = true;
-    state.hasMoved = false; // Important: prevents 0.00s wins
     state.timeLeft = config.timerMax;
 
-    // 2. Start the Clock IMMEDIATELY
-    // We do this before building the level so the timer is already running
+    // 2. Start Timer
     state.timerInterval = setInterval(() => {
         state.timeLeft -= 0.01;
-        if (timerDisplay) {
-            timerDisplay.innerText = state.timeLeft.toFixed(2) + "s";
-        }
+        if (timerDisplay) timerDisplay.innerText = state.timeLeft.toFixed(2) + "s";
         
         if (state.timeLeft <= 0) {
             clearInterval(state.timerInterval);
             state.isActive = false;
-            if (statusDisplay) {
-                statusDisplay.innerText = "CONNECTION TERMINATED";
-                statusDisplay.style.color = "#ff0041";
-            }
+            if (statusDisplay) statusDisplay.innerText = "CONNECTION TERMINATED";
         }
     }, 10);
+
+    // 3. Build Board
+    buildLevel(); 
+
+    // 4. Trace the initial path
+    updatePathTracing(); 
 
     // 3. Handle Easter Eggs
     document.body.classList.remove('theme-pink', 'theme-rainbow');
@@ -182,19 +179,25 @@ function updatePathTracing() {
     while (currIdx !== null) {
         nodes[currIdx].classList.add('active');
         
+        // --- THE WIN CHECK ---
         if (currIdx === 35) {
-            const unrepairedNodes = state.grid.filter(cell => cell.isBroken);
-            if (unrepairedNodes.length === 0) {
+            // We only trigger the win if the timer has actually started (to prevent 0.00s)
+            if (state.timeLeft < config.timerMax) {
                 handleWin();
-                return;
-            } else {
-                statusDisplay.innerText = `REPAIR REMAINING NODES: ${unrepairedNodes.length} LEFT`;
-                statusDisplay.style.color = "#ff0041";
-                return;
             }
+            return;
         }
         
-        if (state.grid[currIdx].isBroken) break;
+        // If the path hits a broken node, it stops here.
+        // This is why "Active-Only Repair" works—the path "stops" on the broken node,
+        // making it 'active' so the player can fix it.
+        if (state.grid[currIdx].isBroken) {
+            if (statusDisplay) {
+                statusDisplay.innerText = "SIGNAL BLOCKED: REPAIR REQUIRED";
+                statusDisplay.style.color = "#ff0041";
+            }
+            break;
+        }
         
         visited.add(currIdx);
         let x = currIdx % 6;
@@ -214,8 +217,8 @@ function updatePathTracing() {
 }
 
 async function handleWin() {
-    // Only allow a win if the game is active AND the player has made a move
-    if (!state.isActive || !state.hasMoved) return; 
+    // If the game isn't active or the timer hasn't even started, ignore the win
+    if (!state.isActive || state.timeLeft >= config.timerMax) return;
 
     state.isActive = false;
     clearInterval(state.timerInterval);
@@ -223,12 +226,14 @@ async function handleWin() {
     const timeTaken = (config.timerMax - state.timeLeft).toFixed(2);
     const username = Storage.getUser();
 
-    await Storage.saveGlobalScore(username, timeTaken);
-
+    // Show win message immediately so the user sees they won
     if (statusDisplay) {
         statusDisplay.innerText = "ALL SYSTEMS RECOVERED - ACCESS GRANTED";
         statusDisplay.style.color = "#00ff41";
     }
+
+    // Save to Firebase in the background
+    await Storage.saveGlobalScore(username, timeTaken);
 }
 
 // Console Easter Egg
