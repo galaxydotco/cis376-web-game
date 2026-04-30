@@ -71,7 +71,6 @@ function init() {
     }
 }
 
-// Add 'newScoreIndex' as an argument
 function renderLeaderboard(newScoreIndex = null) {
     Storage.getGlobalLeaderboard((scores) => {
         if (!leaderboardContainer) return;
@@ -87,11 +86,8 @@ function renderLeaderboard(newScoreIndex = null) {
             const div = document.createElement('div');
             div.className = 'entry';
             
-            // Check if this row is the score the player JUST got
             if (index === newScoreIndex) {
-                div.classList.add('new-score-highlight'); // Always gets the green border
-                
-                // ONLY add the text badge if it's the #1 spot
+                div.classList.add('new-score-highlight'); 
                 if (index === 0) {
                     div.classList.add('top-record-badge');
                 }
@@ -103,12 +99,17 @@ function renderLeaderboard(newScoreIndex = null) {
     });
 }
 
+// --- MERGED & FIXED START FUNCTION ---
 async function startNewGame() {
     clearInterval(state.timerInterval);
     state.isActive = true;
     state.hasMoved = false;
     state.timeLeft = config.timerMax;
+    
+    // 1. Set the Esports-grade Absolute Start Time
+    state.startTime = Date.now(); 
 
+    // 2. Theme & Easter Egg Selection
     document.body.classList.remove('theme-pink', 'theme-rainbow');
     const roll = Math.random();
     
@@ -128,17 +129,27 @@ async function startNewGame() {
         }
     }
 
+    // 3. Play the Audio
     try {
         startSound.currentTime = 0;
         await startSound.play();
-    } catch (e) {}
+    } catch (e) { console.warn("Audio blocked or not loaded"); }
 
+    // 4. Start the Bulletproof Timer
     state.timerInterval = setInterval(() => {
-        state.timeLeft -= 0.01;
-        if (timerDisplay) timerDisplay.innerText = state.timeLeft.toFixed(2) + "s";
+        const now = Date.now();
+        const elapsedSeconds = (now - state.startTime) / 1000;
+        state.timeLeft = config.timerMax - elapsedSeconds;
+
+        if (timerDisplay) {
+            const displayTime = Math.max(0, state.timeLeft).toFixed(2);
+            timerDisplay.innerText = displayTime + "s";
+        }
+
         if (state.timeLeft <= 0) handleGameOver();
     }, 10);
 
+    // 5. Build the Board
     requestAnimationFrame(() => {
         buildLevel();
     });
@@ -228,7 +239,6 @@ function updatePathTracing() {
 
     const brokenRemaining = state.grid.filter(c => c.isBroken).length;
     
-    // RESET STATUS COLOR if they move away from the exit
     if (!reachedEnd && statusDisplay.innerText.includes("INCOMPLETE")) {
         statusDisplay.innerText = "SIGNAL TRACE ACTIVE";
         statusDisplay.style.color = "#00ff41";
@@ -238,7 +248,6 @@ function updatePathTracing() {
         if (brokenRemaining === 0) {
             handleWin();
         } else {
-            // FIXED: Message now correctly warns about remaining nodes
             statusDisplay.innerText = `INCOMPLETE: ${brokenRemaining} NODES REMAINING`;
             statusDisplay.style.color = "#ffaa00";
             sounds.error.currentTime = 0;
@@ -252,45 +261,30 @@ async function handleWin() {
     state.isActive = false;
     clearInterval(state.timerInterval);
     
-    // Absolute final time calculation
     const finalTime = Date.now();
     const timeTaken = Number(((finalTime - state.startTime) / 1000).toFixed(2));
     
     sounds.win.currentTime = 0;
     sounds.win.play().catch(() => {});
     
-    // Save to database first so our current run is included in the array
     await Storage.saveGlobalScore(Storage.getUser(), timeTaken);
 
     Storage.getGlobalLeaderboard((scores) => {
         const totalEntries = scores.length;
-        
-        // Find our rank (1st, 2nd, 3rd, etc.)
         let myRank = 1;
         for (let i = 0; i < scores.length; i++) {
-            // Force Number conversion to prevent string-math bugs
             if (Number(scores[i].score) < timeTaken) {
                 myRank++;
             }
         }
         
-        // Percentile Math: (Your Rank / Total Players) * 100
         let topPercent = Math.ceil((myRank / totalEntries) * 100);
-        
-        // Polish the display logic
-        if (totalEntries <= 1) {
-            topPercent = 1; // If you're the only player, you're Top 1%
-        } else if (myRank === 1) {
-            topPercent = 1; // The absolute fastest time is always Top 1%
-        }
-        
-        // Safety bounds just in case
+        if (totalEntries <= 1 || myRank === 1) topPercent = 1;
         topPercent = Math.max(1, Math.min(topPercent, 100));
 
         statusDisplay.innerText = `ACCESS GRANTED: TOP ${topPercent}% SPEED`;
         statusDisplay.style.color = "#00ff41";
         
-        // myRank is 1st, 2nd, 3rd etc. Arrays start at 0, so we subtract 1!
         renderLeaderboard(myRank - 1); 
     });
 }
@@ -302,40 +296,4 @@ function handleGameOver() {
     sounds.fail.play().catch(() => {});
     statusDisplay.innerText = "CONNECTION TERMINATED";
     statusDisplay.style.color = "#ff0041";
-}
-
-
-async function startNewGame() {
-    clearInterval(state.timerInterval);
-    state.isActive = true;
-    state.hasMoved = false;
-    state.timeLeft = config.timerMax;
-    
-    // NEW: Capture absolute start time
-    state.startTime = Date.now(); 
-
-    // ... (keep your sound logic and theme logic here) ...
-
-    state.timerInterval = setInterval(() => {
-        // NEW MATH: Absolute Time Calculation
-        const now = Date.now();
-        const elapsedMilliseconds = now - state.startTime;
-        const elapsedSeconds = elapsedMilliseconds / 1000;
-        
-        state.timeLeft = config.timerMax - elapsedSeconds;
-
-        if (timerDisplay) {
-            // Ensure we don't show negative numbers if it lags at the very end
-            const displayTime = Math.max(0, state.timeLeft).toFixed(2);
-            timerDisplay.innerText = displayTime + "s";
-        }
-
-        if (state.timeLeft <= 0) {
-            handleGameOver();
-        }
-    }, 10); // We still run at 10ms for smoothness, but the MATH is now bulletproof
-
-    requestAnimationFrame(() => {
-        buildLevel();
-    });
 }
