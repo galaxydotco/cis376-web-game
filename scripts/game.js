@@ -161,36 +161,27 @@ function renderBoard(board) {
             if (!state.isActive) return;
 
             if (cell.isBroken) {
-                // Bypass Prevention: Only repair if the path currently reaches this node.
-                // SILENT CHECK: No error sounds, just ignores the click if unconnected.
-                if (!div.classList.contains('active')) {
-                    return; 
-                }
+                // SILENT: Only repair if reached by the path, otherwise do nothing
+                if (!div.classList.contains('active')) return; 
                 
-                // Successfully repaired
                 cell.isBroken = false;
                 div.classList.remove('broken');
+                // Optional: add a repair sound here if you'd like, 
+                // but currently it is silent as requested.
             } else {
-                // Rotate normal node
                 cell.dir = (cell.dir + 1) % 4;
                 div.innerText = config.arrows[cell.dir];
 
-                // Play Directional Sounds
+                // ONLY play rotation sounds here
                 if (cell.dir === 0 || cell.dir === 2) {
-                    if (sounds.clickUpDn) {
-                        sounds.clickUpDn.currentTime = 0;
-                        sounds.clickUpDn.play().catch(() => {});
-                    }
+                    sounds.clickUpDn.currentTime = 0;
+                    sounds.clickUpDn.play().catch(() => {});
                 } else if (cell.dir === 1) {
-                    if (sounds.clickRight) {
-                        sounds.clickRight.currentTime = 0;
-                        sounds.clickRight.play().catch(() => {});
-                    }
+                    sounds.clickRight.currentTime = 0;
+                    sounds.clickRight.play().catch(() => {});
                 } else if (cell.dir === 3) {
-                    if (sounds.clickLeft) {
-                        sounds.clickLeft.currentTime = 0;
-                        sounds.clickLeft.play().catch(() => {});
-                    }
+                    sounds.clickLeft.currentTime = 0;
+                    sounds.clickLeft.play().catch(() => {});
                 }
             }
             updatePathTracing();
@@ -204,7 +195,6 @@ function updatePathTracing() {
     const nodes = document.querySelectorAll('.node');
     if (!nodes.length || !statusDisplay) return;
 
-    // 1. Reset visual path
     nodes.forEach(n => n.classList.remove('active'));
     
     let currIdx = 0;
@@ -212,32 +202,25 @@ function updatePathTracing() {
     let isBlocked = false;
     let reachedEnd = false;
 
-    // Count how many nodes MUST be used to win (all non-broken ones)
     const totalFunctionalNodes = state.grid.filter(cell => !cell.isBroken).length;
 
-    // 2. Trace the signal from the start (Index 0)
     while (currIdx !== null) {
         nodes[currIdx].classList.add('active');
         visited.add(currIdx);
 
-        // SILENT BLOCK: If the path hits a broken node, simply stop tracing visually.
         if (state.grid[currIdx].isBroken) {
             isBlocked = true;
             break; 
         }
 
-        // 3. END GAME CHECKS
         if (currIdx === 35 && !isBlocked) {
             reachedEnd = true;
-            
-            // Check if every functional node is in our 'visited' path
             if (visited.size === totalFunctionalNodes) {
-                // WIN CONDITION: Perfect Path
                 if (state.timeLeft < config.timerMax) {
                     handleWin();
                 }
             } else {
-                // ERROR CONDITION: Reached end without filling all empty nodes
+                // ONLY place where the error sound is allowed to trigger during play
                 if (statusDisplay.innerText !== "INCOMPLETE CIRCUIT: MUST FILL ALL NODES") {
                     if (sounds.error) {
                         sounds.error.currentTime = 0;
@@ -250,28 +233,87 @@ function updatePathTracing() {
             break; 
         }
 
-        // 4. Calculate Next Move
         let x = currIdx % 6;
         let y = Math.floor(currIdx / 6);
         let direction = state.grid[currIdx].dir;
 
-        // 0: ↑, 1: →, 2: ↓, 3: ←
         if (direction === 0) y--;
         else if (direction === 1) x++;
         else if (direction === 2) y++;
         else if (direction === 3) x--;
 
-        // SILENT BREAKS: If path goes off-screen or loops, stop tracing silently
         if (x < 0 || x >= 6 || y < 0 || y >= 6) break;
-        
         let nextIdx = y * 6 + x;
         if (visited.has(nextIdx)) break;
-
         currIdx = nextIdx;
     }
 
-    // 5. CLEANUP: If player breaks the connection to the end, clear the error message
-    if (!reachedEnd && state.isActive && statusDisplay.innerText.includes("INCOMPLETE CIRCUIT")) {
+    // Reset status text silently if they move away from the exit
+    if (!reachedEnd && state.isActive && statusDisplay.innerText.includes("INCOMPLETE")) {
+        statusDisplay.innerText = "SIGNAL TRACE ACTIVE";
+        statusDisplay.style.color = "#00ff41";
+    }
+}
+
+function updatePathTracing() {
+    const nodes = document.querySelectorAll('.node');
+    if (!nodes.length || !statusDisplay) return;
+
+    nodes.forEach(n => n.classList.remove('active'));
+    
+    let currIdx = 0;
+    let visited = new Set();
+    let isBlocked = false;
+    let reachedEnd = false;
+
+    const totalFunctionalNodes = state.grid.filter(cell => !cell.isBroken).length;
+
+    while (currIdx !== null) {
+        nodes[currIdx].classList.add('active');
+        visited.add(currIdx);
+
+        if (state.grid[currIdx].isBroken) {
+            isBlocked = true;
+            break; 
+        }
+
+        if (currIdx === 35 && !isBlocked) {
+            reachedEnd = true;
+            if (visited.size === totalFunctionalNodes) {
+                if (state.timeLeft < config.timerMax) {
+                    handleWin();
+                }
+            } else {
+                // ONLY place where the error sound is allowed to trigger during play
+                if (statusDisplay.innerText !== "INCOMPLETE CIRCUIT: MUST FILL ALL NODES") {
+                    if (sounds.error) {
+                        sounds.error.currentTime = 0;
+                        sounds.error.play().catch(() => {});
+                    }
+                    statusDisplay.innerText = "INCOMPLETE CIRCUIT: MUST FILL ALL NODES";
+                    statusDisplay.style.color = "#ffaa00";
+                }
+            }
+            break; 
+        }
+
+        let x = currIdx % 6;
+        let y = Math.floor(currIdx / 6);
+        let direction = state.grid[currIdx].dir;
+
+        if (direction === 0) y--;
+        else if (direction === 1) x++;
+        else if (direction === 2) y++;
+        else if (direction === 3) x--;
+
+        if (x < 0 || x >= 6 || y < 0 || y >= 6) break;
+        let nextIdx = y * 6 + x;
+        if (visited.has(nextIdx)) break;
+        currIdx = nextIdx;
+    }
+
+    // Reset status text silently if they move away from the exit
+    if (!reachedEnd && state.isActive && statusDisplay.innerText.includes("INCOMPLETE")) {
         statusDisplay.innerText = "SIGNAL TRACE ACTIVE";
         statusDisplay.style.color = "#00ff41";
     }
