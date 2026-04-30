@@ -76,36 +76,49 @@ function init() {
 
 function startNewGame() {
     console.log("System Initializing...");
+    
+    // 1. Reset state
     clearInterval(state.timerInterval);
     state.isActive = true;
+    state.hasMoved = false; // Important: prevents 0.00s wins
     state.timeLeft = config.timerMax;
 
-    // --- EASTER EGG LOGIC ---
-    // Remove any previous themes
+    // 2. Start the Clock IMMEDIATELY
+    // We do this before building the level so the timer is already running
+    state.timerInterval = setInterval(() => {
+        state.timeLeft -= 0.01;
+        if (timerDisplay) {
+            timerDisplay.innerText = state.timeLeft.toFixed(2) + "s";
+        }
+        
+        if (state.timeLeft <= 0) {
+            clearInterval(state.timerInterval);
+            state.isActive = false;
+            if (statusDisplay) {
+                statusDisplay.innerText = "CONNECTION TERMINATED";
+                statusDisplay.style.color = "#ff0041";
+            }
+        }
+    }, 10);
+
+    // 3. Handle Easter Eggs
     document.body.classList.remove('theme-pink', 'theme-rainbow');
-
-    const roll = Math.random(); // Generates a number between 0 and 1
-
-    if (roll < 0.10) { 
-        // 10% chance for Pink/Purple
+    const roll = Math.random();
+    if (roll < 0.10) {
         document.body.classList.add('theme-pink');
         if (statusDisplay) statusDisplay.innerText = "OVERRIDE: CYBER-VIBE DETECTED";
-    } 
-    else if (roll < 0.15) { 
-        // 5% chance for Rainbow (0.10 to 0.15)
+    } else if (roll < 0.15) {
         document.body.classList.add('theme-rainbow');
         if (statusDisplay) statusDisplay.innerText = "CRITICAL GLITCH: SPECTRUM SHIFT";
-    }
-    else {
-        // Standard Green Vibe
+    } else {
         if (statusDisplay) {
             statusDisplay.innerText = "SIGNAL TRACE ACTIVE";
             statusDisplay.style.color = "#00ff41";
         }
     }
 
+    // 4. Build the Level last
     buildLevel();
-    // ... rest of your timer logic ...
 }
 
 function buildLevel() {
@@ -201,7 +214,9 @@ function updatePathTracing() {
 }
 
 async function handleWin() {
-    if (!state.isActive) return;
+    // Only allow a win if the game is active AND the player has made a move
+    if (!state.isActive || !state.hasMoved) return; 
+
     state.isActive = false;
     clearInterval(state.timerInterval);
 
