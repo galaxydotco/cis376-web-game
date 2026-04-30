@@ -25,7 +25,6 @@ const sounds = {
 
 Object.values(sounds).forEach(s => s.volume = 0.3);
 
-// --- 2. GLOBAL DOM CACHE ---
 const statusDisplay = document.getElementById('status');
 const timerDisplay = document.getElementById('timer');
 const displayName = document.getElementById('display-name');
@@ -62,7 +61,6 @@ function init() {
         playerForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const nameInput = document.getElementById('username');
-            // If you don't enter at least 3 characters, the game will not start!
             if (nameInput && nameInput.value.length >= 3) {
                 Storage.saveUser(nameInput.value);
                 if (displayName) displayName.innerText = nameInput.value;
@@ -157,7 +155,7 @@ function renderBoard(board) {
             if (!state.isActive) return;
 
             if (cell.isBroken) {
-                // Repair only if the green path is touching it
+                // You can only fix a red node if your path is currently touching it
                 if (!div.classList.contains('active')) return; 
                 cell.isBroken = false;
                 div.classList.remove('broken');
@@ -165,7 +163,6 @@ function renderBoard(board) {
                 cell.dir = (cell.dir + 1) % 4;
                 div.innerText = config.arrows[cell.dir];
 
-                // Play directional sounds
                 if (cell.dir === 0 || cell.dir === 2) {
                     sounds.clickUpDn.currentTime = 0;
                     sounds.clickUpDn.play().catch(() => {});
@@ -193,10 +190,11 @@ function updatePathTracing() {
     let visited = new Set();
     let reachedEnd = false;
 
+    // 1. Trace the path from start
     while (currIdx !== null) {
-        // Stop the green line at a broken node, but light it up for repair
+        // Path stops visually at a broken node
         if (state.grid[currIdx].isBroken) {
-            nodes[currIdx].classList.add('active');
+            nodes[currIdx].classList.add('active'); 
             break; 
         }
 
@@ -223,26 +221,26 @@ function updatePathTracing() {
         currIdx = nextIdx;
     }
 
-    // WIN CONDITION: Path length must match the count of non-broken nodes
-    const requiredNodes = state.grid.filter(cell => !cell.isBroken).length;
-    const pathCount = visited.size;
+    // 2. Win Condition: Path must contain ALL empty (non-broken) nodes
+    const totalEmptyNodes = state.grid.filter(cell => !cell.isBroken).length;
 
     if (reachedEnd) {
-        if (pathCount === requiredNodes) {
+        if (visited.size === totalEmptyNodes) {
             handleWin();
         } else {
+            // Error: Hit exit but missed some grey nodes
             if (!statusDisplay.innerText.includes("INCOMPLETE")) {
                 if (sounds.error) {
                     sounds.error.currentTime = 0;
                     sounds.error.play().catch(() => {});
                 }
-                const missing = requiredNodes - pathCount;
-                statusDisplay.innerText = `INCOMPLETE CIRCUIT: ${missing} NODE(S) MISSING`;
+                statusDisplay.innerText = "INCOMPLETE CIRCUIT: ALL EMPTY NODES MUST BE FILLED";
                 statusDisplay.style.color = "#ffaa00";
             }
         }
     } else {
-        if (state.isActive && statusDisplay.innerText.includes("INCOMPLETE")) {
+        // Reset status if they move away from the exit
+        if (statusDisplay.innerText.includes("INCOMPLETE")) {
             statusDisplay.innerText = "SIGNAL TRACE ACTIVE";
             statusDisplay.style.color = "#00ff41";
         }
@@ -253,18 +251,13 @@ async function handleWin() {
     if (!state.isActive) return;
     state.isActive = false;
     clearInterval(state.timerInterval);
-    
     if (sounds.win) sounds.win.play().catch(() => {});
-
-    const timeTaken = (config.timerMax - state.timeLeft).toFixed(2);
-    const username = Storage.getUser();
-
     if (statusDisplay) {
         statusDisplay.innerText = "ALL SYSTEMS RECOVERED - ACCESS GRANTED";
         statusDisplay.style.color = "#00ff41";
     }
-
-    await Storage.saveGlobalScore(username, timeTaken);
+    const timeTaken = (config.timerMax - state.timeLeft).toFixed(2);
+    await Storage.saveGlobalScore(Storage.getUser(), timeTaken);
 }
 
 window.noclip = () => {
