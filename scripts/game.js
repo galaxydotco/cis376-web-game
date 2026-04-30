@@ -75,32 +75,37 @@ function init() {
 }
 
 function startNewGame() {
-    console.log("System Initializing..."); // Debug log
+    console.log("System Initializing...");
     clearInterval(state.timerInterval);
     state.isActive = true;
     state.timeLeft = config.timerMax;
 
-    if (statusDisplay) {
-        statusDisplay.innerText = "SIGNAL TRACE ACTIVE";
-        statusDisplay.style.color = "#00ff41";
+    // --- EASTER EGG LOGIC ---
+    // Remove any previous themes
+    document.body.classList.remove('theme-pink', 'theme-rainbow');
+
+    const roll = Math.random(); // Generates a number between 0 and 1
+
+    if (roll < 0.10) { 
+        // 10% chance for Pink/Purple
+        document.body.classList.add('theme-pink');
+        if (statusDisplay) statusDisplay.innerText = "OVERRIDE: CYBER-VIBE DETECTED";
+    } 
+    else if (roll < 0.15) { 
+        // 5% chance for Rainbow (0.10 to 0.15)
+        document.body.classList.add('theme-rainbow');
+        if (statusDisplay) statusDisplay.innerText = "CRITICAL GLITCH: SPECTRUM SHIFT";
+    }
+    else {
+        // Standard Green Vibe
+        if (statusDisplay) {
+            statusDisplay.innerText = "SIGNAL TRACE ACTIVE";
+            statusDisplay.style.color = "#00ff41";
+        }
     }
 
     buildLevel();
-
-    state.timerInterval = setInterval(() => {
-        state.timeLeft -= 0.01;
-        if (timerDisplay) {
-            timerDisplay.innerText = state.timeLeft.toFixed(2) + "s";
-        }
-        if (state.timeLeft <= 0) {
-            clearInterval(state.timerInterval);
-            state.isActive = false;
-            if (statusDisplay) {
-                statusDisplay.innerText = "CONNECTION TERMINATED";
-                statusDisplay.style.color = "#ff0041";
-            }
-        }
-    }, 10);
+    // ... rest of your timer logic ...
 }
 
 function buildLevel() {

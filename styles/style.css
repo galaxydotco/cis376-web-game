@@ -98,3 +98,33 @@ main { flex-grow: 1; }
     color: rgba(0, 255, 65, 0.5);
     margin-right: 10px;
 }
+
+/* --- CYBER-PINK THEME (10% chance) --- */
+body.theme-pink {
+    --clr-main: #ff00ff; /* Neon Pink */
+    --clr-bg: #1a001a;   /* Dark Purple BG */
+    --clr-accent: #00ffff; /* Cyan accents */
+}
+body.theme-pink .border-success { border-color: var(--clr-main) !important; }
+body.theme-pink .text-success { color: var(--clr-main) !important; }
+body.theme-pink .node.active { background: rgba(255, 0, 255, 0.3); box-shadow: 0 0 10px #ff00ff; }
+
+/* --- RAINBOW GLITCH THEME (5% chance) --- */
+body.theme-rainbow {
+    animation: bg-hue 5s infinite linear;
+}
+body.theme-rainbow .text-success, 
+body.theme-rainbow .node {
+    animation: text-hue 3s infinite linear;
+}
+
+@keyframes text-hue {
+    from { filter: hue-rotate(0deg); }
+    to { filter: hue-rotate(360deg); }
+}
+
+@keyframes bg-hue {
+    0% { background-color: #0d001a; }
+    50% { background-color: #1a0d00; }
+    100% { background-color: #0d001a; }
+}
