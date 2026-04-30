@@ -10,7 +10,7 @@ import { Storage } from './storage.js';
 const config = { size: 6, timerMax: 30, arrows: ['↑', '→', '↓', '←'] };
 let state = { grid: [], timeLeft: config.timerMax, isActive: false, timerInterval: null, hasMoved: false };
 
-// --- 1. AUDIO LIBRARY (With pre-unlock logic) ---
+// --- 1. AUDIO LIBRARY ---
 const sounds = {
     egg_pink: new Audio('assets/pink_spawn.mp3'),
     egg_rainbow: new Audio('assets/rainbow_spawn.mp3'),
@@ -23,19 +23,17 @@ const sounds = {
     clickRight: new Audio('assets/click_right.mp3')
 };
 
-// Global volume and preload
-Object.values(sounds).forEach(s => { 
-    s.volume = 0.3; 
-    s.preload = 'auto'; 
-});
+Object.values(sounds).forEach(s => { s.volume = 0.3; s.preload = 'auto'; });
 
-// CRITICAL: This function "wakes up" audio on the first click
+// Improved Unlocker
 function unlockAudio() {
     Object.values(sounds).forEach(sound => {
+        sound.muted = true;
         sound.play().then(() => {
             sound.pause();
+            sound.muted = false;
             sound.currentTime = 0;
-        }).catch(() => {/* Silent fail until user clicks */});
+        }).catch(() => {});
     });
 }
 
@@ -55,12 +53,13 @@ function init() {
     if (playerForm) {
         playerForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            unlockAudio(); // Unlock on form submit
+            unlockAudio(); 
             const nameInput = document.getElementById('username');
             if (nameInput && nameInput.value.length >= 3) {
                 Storage.saveUser(nameInput.value);
                 if (displayName) displayName.innerText = nameInput.value;
-                startNewGame();
+                // Give the browser 100ms to handle the audio unlock before starting
+                setTimeout(startNewGame, 100);
             }
         });
     }
@@ -69,13 +68,13 @@ function init() {
     if (navReset) {
         navReset.addEventListener('click', (e) => { 
             e.preventDefault(); 
-            unlockAudio(); // Unlock on reset click
-            startNewGame(); 
+            unlockAudio();
+            setTimeout(startNewGame, 50); 
         });
     }
 }
 
-function renderLeaderboard(newBestId = null) {
+function renderLeaderboard() {
     Storage.getGlobalLeaderboard((scores) => {
         if (!leaderboardContainer) return;
         leaderboardContainer.innerHTML = '';
@@ -96,7 +95,7 @@ function renderLeaderboard(newBestId = null) {
     });
 }
 
-function startNewGame() {
+async function startNewGame() {
     clearInterval(state.timerInterval);
     state.isActive = true;
     state.hasMoved = false;
@@ -105,33 +104,41 @@ function startNewGame() {
     document.body.classList.remove('theme-pink', 'theme-rainbow');
     const roll = Math.random();
     
-    // Play Start Sounds Based on Mode
+    // Choose the sound to play
+    let startSound = sounds.start;
     if (roll < 0.10) {
         document.body.classList.add('theme-pink');
         if (statusDisplay) statusDisplay.innerText = "OVERRIDE: CYBER-VIBE DETECTED";
-        sounds.egg_pink.currentTime = 0;
-        sounds.egg_pink.play().catch(e => console.log("Audio Blocked:", e));
+        startSound = sounds.egg_pink;
     } else if (roll < 0.15) {
         document.body.classList.add('theme-rainbow');
         if (statusDisplay) statusDisplay.innerText = "CRITICAL GLITCH: SPECTRUM SHIFT";
-        sounds.egg_rainbow.currentTime = 0;
-        sounds.egg_rainbow.play().catch(e => console.log("Audio Blocked:", e));
+        startSound = sounds.egg_rainbow;
     } else {
         if (statusDisplay) {
             statusDisplay.innerText = "SIGNAL TRACE ACTIVE";
             statusDisplay.style.color = "#00ff41";
         }
-        sounds.start.currentTime = 0;
-        sounds.start.play().catch(e => console.log("Audio Blocked:", e));
     }
 
+    // PLAY SOUND FIRST
+    try {
+        startSound.currentTime = 0;
+        await startSound.play();
+    } catch (e) { console.warn("Audio Context busy:", e); }
+
+    // Start Timer
     state.timerInterval = setInterval(() => {
         state.timeLeft -= 0.01;
         if (timerDisplay) timerDisplay.innerText = state.timeLeft.toFixed(2) + "s";
         if (state.timeLeft <= 0) handleGameOver();
     }, 10);
 
-    buildLevel();
+    // DELAY LEVEL BUILD: This prevents the audio from glitching 
+    // while the browser tries to render the grid.
+    requestAnimationFrame(() => {
+        buildLevel();
+    });
 }
 
 function buildLevel() {
@@ -182,7 +189,8 @@ function renderBoard(board) {
                 s.play().catch(() => {});
             }
             
-            requestAnimationFrame(() => updatePathTracing());
+            // Fast recalculation
+            updatePathTracing();
         };
         board.appendChild(div);
     });
@@ -221,11 +229,9 @@ function updatePathTracing() {
     if (reachedEnd && brokenRemaining === 0) {
         handleWin();
     } else if (reachedEnd && brokenRemaining > 0) {
-        // Trigger error sound if they hit the exit but nodes are still broken
+        // Error sound only triggers if they actively try to win with broken nodes
         sounds.error.currentTime = 0;
         sounds.error.play().catch(() => {});
-        statusDisplay.innerText = `INCOMPLETE: ${brokenRemaining} NODES REMAIN`;
-        statusDisplay.style.color = "#ffaa00";
     }
 }
 
