@@ -23,6 +23,7 @@ const sounds = {
     clickRight: new Audio('assets/click_right.mp3')
 };
 
+// Lower volume to make it pleasant
 Object.values(sounds).forEach(s => s.volume = 0.3);
 
 // --- 2. GLOBAL DOM CACHE ---
@@ -86,38 +87,39 @@ function startNewGame() {
     state.isActive = true;
     state.timeLeft = config.timerMax;
 
-    // 1. Reset Themes
+    // Reset Themes
     document.body.classList.remove('theme-pink', 'theme-rainbow');
 
-    // 2. Roll for Easter Egg and Play Start Sound
+    // Roll for Easter Egg and Play Start Sound
     const roll = Math.random();
     if (roll < 0.10) {
         document.body.classList.add('theme-pink');
         if (statusDisplay) statusDisplay.innerText = "OVERRIDE: CYBER-VIBE DETECTED";
-        if (sounds.egg_pink) sounds.egg_pink.play(); 
+        if (sounds.egg_pink) sounds.egg_pink.play().catch(() => {}); 
     } 
     else if (roll < 0.15) {
         document.body.classList.add('theme-rainbow');
         if (statusDisplay) statusDisplay.innerText = "CRITICAL GLITCH: SPECTRUM SHIFT";
-        if (sounds.egg_rainbow) sounds.egg_rainbow.play();
+        if (sounds.egg_rainbow) sounds.egg_rainbow.play().catch(() => {});
     } 
     else {
         if (statusDisplay) {
             statusDisplay.innerText = "SIGNAL TRACE ACTIVE";
             statusDisplay.style.color = "#00ff41";
         }
-        if (sounds.start) sounds.start.play();
+        if (sounds.start) sounds.start.play().catch(() => {});
     }
 
-    // 3. Start the Clock
+    // Start the Clock
     state.timerInterval = setInterval(() => {
         state.timeLeft -= 0.01;
         if (timerDisplay) timerDisplay.innerText = state.timeLeft.toFixed(2) + "s";
         
+        // FAIL CONDITION: Time runs out
         if (state.timeLeft <= 0) {
             clearInterval(state.timerInterval);
             state.isActive = false;
-            if (sounds.fail) sounds.fail.play();
+            if (sounds.fail) sounds.fail.play().catch(() => {});
             if (statusDisplay) {
                 statusDisplay.innerText = "CONNECTION TERMINATED";
                 statusDisplay.style.color = "#ff0041";
@@ -134,6 +136,8 @@ function buildLevel() {
     if (!board) return;
     state.grid = [];
     board.innerHTML = '';
+    
+    // Generate 36 nodes
     for (let i = 0; i < 36; i++) {
         state.grid.push({
             id: i,
@@ -157,31 +161,36 @@ function renderBoard(board) {
             if (!state.isActive) return;
 
             if (cell.isBroken) {
-                // Bypass Prevention: Only repair if the path currently reaches this node
+                // Bypass Prevention: Only repair if the path currently reaches this node.
+                // SILENT CHECK: No error sounds, just ignores the click if unconnected.
                 if (!div.classList.contains('active')) {
-                    if (sounds.error) sounds.error.play();
-                    if (statusDisplay) {
-                        statusDisplay.innerText = "SYSTEM LINK REQUIRED FOR REPAIR";
-                        statusDisplay.style.color = "#ff0041";
-                    }
                     return; 
                 }
+                
+                // Successfully repaired
                 cell.isBroken = false;
                 div.classList.remove('broken');
             } else {
+                // Rotate normal node
                 cell.dir = (cell.dir + 1) % 4;
                 div.innerText = config.arrows[cell.dir];
 
-                // Directional Sounds
+                // Play Directional Sounds
                 if (cell.dir === 0 || cell.dir === 2) {
-                    sounds.clickUpDn.currentTime = 0;
-                    sounds.clickUpDn.play();
+                    if (sounds.clickUpDn) {
+                        sounds.clickUpDn.currentTime = 0;
+                        sounds.clickUpDn.play().catch(() => {});
+                    }
                 } else if (cell.dir === 1) {
-                    sounds.clickRight.currentTime = 0;
-                    sounds.clickRight.play();
+                    if (sounds.clickRight) {
+                        sounds.clickRight.currentTime = 0;
+                        sounds.clickRight.play().catch(() => {});
+                    }
                 } else if (cell.dir === 3) {
-                    sounds.clickLeft.currentTime = 0;
-                    sounds.clickLeft.play();
+                    if (sounds.clickLeft) {
+                        sounds.clickLeft.currentTime = 0;
+                        sounds.clickLeft.play().catch(() => {});
+                    }
                 }
             }
             updatePathTracing();
@@ -201,30 +210,44 @@ function updatePathTracing() {
     let currIdx = 0;
     let visited = new Set();
     let isBlocked = false;
+    let reachedEnd = false;
+
+    // Count how many nodes MUST be used to win (all non-broken ones)
+    const totalFunctionalNodes = state.grid.filter(cell => !cell.isBroken).length;
 
     // 2. Trace the signal from the start (Index 0)
     while (currIdx !== null) {
         nodes[currIdx].classList.add('active');
         visited.add(currIdx);
 
-        // If the path hits a broken node, stop immediately
+        // SILENT BLOCK: If the path hits a broken node, simply stop tracing visually.
         if (state.grid[currIdx].isBroken) {
             isBlocked = true;
-            if (statusDisplay.innerText !== "SIGNAL BLOCKED: REPAIR REQUIRED") {
-                if (sounds.error) sounds.error.play();
-                statusDisplay.innerText = "SIGNAL BLOCKED: REPAIR REQUIRED";
-                statusDisplay.style.color = "#ff0041";
-            }
             break; 
         }
 
-        // 3. WIN CHECK: If we hit the exit (Index 35) and didn't hit a break
+        // 3. END GAME CHECKS
         if (currIdx === 35 && !isBlocked) {
-            // We only trigger the win if the timer has actually started
-            if (state.timeLeft < config.timerMax) {
-                handleWin();
+            reachedEnd = true;
+            
+            // Check if every functional node is in our 'visited' path
+            if (visited.size === totalFunctionalNodes) {
+                // WIN CONDITION: Perfect Path
+                if (state.timeLeft < config.timerMax) {
+                    handleWin();
+                }
+            } else {
+                // ERROR CONDITION: Reached end without filling all empty nodes
+                if (statusDisplay.innerText !== "INCOMPLETE CIRCUIT: MUST FILL ALL NODES") {
+                    if (sounds.error) {
+                        sounds.error.currentTime = 0;
+                        sounds.error.play().catch(() => {});
+                    }
+                    statusDisplay.innerText = "INCOMPLETE CIRCUIT: MUST FILL ALL NODES";
+                    statusDisplay.style.color = "#ffaa00";
+                }
             }
-            return; // Exit function so we don't overwrite the "RECOVERED" text
+            break; 
         }
 
         // 4. Calculate Next Move
@@ -238,34 +261,26 @@ function updatePathTracing() {
         else if (direction === 2) y++;
         else if (direction === 3) x--;
 
-        // Boundary Check (If path goes off-screen)
-        if (x < 0 || x >= 6 || y < 0 || y >= 6) {
-            if (statusDisplay) {
-                statusDisplay.innerText = "SIGNAL LOST: OUT OF BOUNDS";
-                statusDisplay.style.color = "#ffaa00";
-            }
-            break;
-        }
-
+        // SILENT BREAKS: If path goes off-screen or loops, stop tracing silently
+        if (x < 0 || x >= 6 || y < 0 || y >= 6) break;
+        
         let nextIdx = y * 6 + x;
-
-        // Loop prevention (If the path circles back on itself)
-        if (visited.has(nextIdx)) {
-            if (statusDisplay) {
-                statusDisplay.innerText = "SIGNAL LOOP DETECTED";
-                statusDisplay.style.color = "#ffaa00";
-            }
-            break;
-        }
+        if (visited.has(nextIdx)) break;
 
         currIdx = nextIdx;
+    }
+
+    // 5. CLEANUP: If player breaks the connection to the end, clear the error message
+    if (!reachedEnd && state.isActive && statusDisplay.innerText.includes("INCOMPLETE CIRCUIT")) {
+        statusDisplay.innerText = "SIGNAL TRACE ACTIVE";
+        statusDisplay.style.color = "#00ff41";
     }
 }
 
 async function handleWin() {
     if (!state.isActive || state.timeLeft >= config.timerMax) return;
 
-    if (sounds.win) sounds.win.play();
+    if (sounds.win) sounds.win.play().catch(() => {});
     state.isActive = false;
     clearInterval(state.timerInterval);
 
