@@ -12,13 +12,15 @@ let state = { grid: [], timeLeft: config.timerMax, isActive: false, timerInterva
 
 // --- 1. AUDIO LIBRARY ---
 const sounds = {
+    egg_pink: new Audio('assets/pink_spawn.mp3'),
+    egg_rainbow: new Audio('assets/rainbow_spawn.mp3'),
     start: new Audio('assets/start.mp3'),
     win: new Audio('assets/win.mp3'),
     fail: new Audio('assets/fail.mp3'),
-    error: new Audio('assets/error.mp3'), 
+    error: new Audio('assets/error.mp3'),
     clickUpDn: new Audio('assets/click_up_down.mp3'),
     clickLeft: new Audio('assets/click_left.mp3'),
-    clickRight: new Audio('assets/click_right.mp3') 
+    clickRight: new Audio('assets/click_right.mp3')
 };
 
 // Set volumes (optional)
@@ -59,16 +61,16 @@ function init() {
 
     // --- 2. The Fixed Player Form Section ---
     // Make sure this line is OUTSIDE and ABOVE the listener
-    const playerForm = document.getElementById('player-form'); 
-    
+    const playerForm = document.getElementById('player-form');
+
     if (playerForm) {
         playerForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const nameInput = document.getElementById('username');
             if (nameInput && nameInput.value.length >= 3) {
                 // Play sound if it exists
-                if (sounds.start) sounds.start.play(); 
-                
+                if (sounds.start) sounds.start.play();
+
                 Storage.saveUser(nameInput.value);
                 if (displayName) displayName.innerText = nameInput.value;
                 startNewGame();
@@ -93,18 +95,48 @@ function startNewGame() {
     state.isActive = true;
     state.timeLeft = config.timerMax;
 
-    // 2. Start Timer
+    // 2. Reset Themes
+    document.body.classList.remove('theme-pink', 'theme-rainbow');
+
+    // 3. Roll for Easter Egg
+    const roll = Math.random();
+
+    if (roll < 0.10) {
+        // 10% PINK THEME
+        document.body.classList.add('theme-pink');
+        if (statusDisplay) {
+            statusDisplay.innerText = "OVERRIDE: CYBER-VIBE DETECTED";
+            statusDisplay.style.color = "#ff00ff"; // Optional: match the pink
+        }
+        if (sounds.egg_pink) sounds.egg_pink.play(); 
+    } 
+    else if (roll < 0.15) {
+        // 5% RAINBOW THEME
+        document.body.classList.add('theme-rainbow');
+        if (statusDisplay) {
+            statusDisplay.innerText = "CRITICAL GLITCH: SPECTRUM SHIFT";
+            // Rainbow CSS handles the color
+        }
+        if (sounds.egg_rainbow) sounds.egg_rainbow.play();
+    } 
+    else {
+        // STANDARD THEME
+        if (statusDisplay) {
+            statusDisplay.innerText = "SIGNAL TRACE ACTIVE";
+            statusDisplay.style.color = "#00ff41";
+        }
+        if (sounds.start) sounds.start.play();
+    }
+
+    // 4. Start the Clock
     state.timerInterval = setInterval(() => {
         state.timeLeft -= 0.01;
         if (timerDisplay) timerDisplay.innerText = state.timeLeft.toFixed(2) + "s";
-
+        
         if (state.timeLeft <= 0) {
             clearInterval(state.timerInterval);
             state.isActive = false;
-
-            // --- PLAY FAIL SOUND HERE ---
-            sounds.fail.play();
-
+            if (sounds.fail) sounds.fail.play();
             if (statusDisplay) {
                 statusDisplay.innerText = "CONNECTION TERMINATED";
                 statusDisplay.style.color = "#ff0041";
@@ -112,26 +144,30 @@ function startNewGame() {
         }
     }, 10);
 
-    // 3. Handle Easter Eggs (Apply themes before building the board)
-    document.body.classList.remove('theme-pink', 'theme-rainbow');
-    const roll = Math.random();
-    if (roll < 0.10) {
-        document.body.classList.add('theme-pink');
-        if (statusDisplay) statusDisplay.innerText = "OVERRIDE: CYBER-VIBE DETECTED";
-    } else if (roll < 0.15) {
-        document.body.classList.add('theme-rainbow');
-        if (statusDisplay) statusDisplay.innerText = "CRITICAL GLITCH: SPECTRUM SHIFT";
-    } else {
-        if (statusDisplay) {
-            statusDisplay.innerText = "SIGNAL TRACE ACTIVE";
-            statusDisplay.style.color = "#00ff41";
-        }
-    }
-
-    // 4. Build Board and Trace Initial Path (ONLY ONCE)
+    // 5. Build Level and Trace
     buildLevel();
     updatePathTracing();
 }
+
+// 3. Handle Easter Eggs (Apply themes before building the board)
+document.body.classList.remove('theme-pink', 'theme-rainbow');
+const roll = Math.random();
+if (roll < 0.10) {
+    document.body.classList.add('theme-pink');
+    if (statusDisplay) statusDisplay.innerText = "OVERRIDE: CYBER-VIBE DETECTED";
+} else if (roll < 0.15) {
+    document.body.classList.add('theme-rainbow');
+    if (statusDisplay) statusDisplay.innerText = "CRITICAL GLITCH: SPECTRUM SHIFT";
+} else {
+    if (statusDisplay) {
+        statusDisplay.innerText = "SIGNAL TRACE ACTIVE";
+        statusDisplay.style.color = "#00ff41";
+    }
+}
+
+// 4. Build Board and Trace Initial Path (ONLY ONCE)
+buildLevel();
+updatePathTracing();
 
 function buildLevel() {
     const board = document.getElementById('game-board');
