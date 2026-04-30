@@ -81,3 +81,20 @@ main { flex-grow: 1; }
     justify-content: space-between !important;
     width: 100%;
 }
+
+#global-leaderboard .entry {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    padding: 2px 0;
+    border-bottom: 1px dotted rgba(0, 255, 65, 0.2);
+}
+
+#global-leaderboard .entry:last-child {
+    border-bottom: none;
+}
+
+#global-leaderboard .rank {
+    color: rgba(0, 255, 65, 0.5);
+    margin-right: 10px;
+}

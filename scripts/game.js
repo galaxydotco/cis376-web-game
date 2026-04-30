@@ -15,6 +15,33 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function init() {
+    Storage.getGlobalLeaderboard((scores) => {
+        const leaderboardContainer = document.getElementById('global-leaderboard');
+        if (!leaderboardContainer) return;
+
+        // Clear the "Loading" text
+        leaderboardContainer.innerHTML = '';
+
+        if (scores.length === 0) {
+            leaderboardContainer.innerHTML = '<div class="text-center">NO DATA FOUND</div>';
+            return;
+        }
+
+        // Build the list
+        scores.forEach((entry, index) => {
+            const div = document.createElement('div');
+            div.className = 'entry';
+            div.innerHTML = `
+            <span>
+                <span class="rank">#${index + 1}</span>
+                ${entry.username.toUpperCase()}
+            </span>
+            <span>${entry.score.toFixed(2)}s</span>
+        `;
+            leaderboardContainer.appendChild(div);
+        });
+    });
+
     // DOM cache
     const playerForm = document.getElementById('player-form');
     const navReset = document.getElementById('nav-reset');
@@ -60,7 +87,7 @@ function startNewGame() {
     }
 
     buildLevel();
-    
+
     state.timerInterval = setInterval(() => {
         state.timeLeft -= 0.01;
         if (timerDisplay) {
@@ -83,11 +110,11 @@ function buildLevel() {
     state.grid = [];
     board.innerHTML = '';
     // create randomized items into each game instance
-    for (let i = 0; i < 36; i++) { 
+    for (let i = 0; i < 36; i++) {
         state.grid.push({
             id: i,
             dir: Math.floor(Math.random() * 4),
-            isBroken: Math.random() > 0.7 && i !== 0 && i !== 35 
+            isBroken: Math.random() > 0.7 && i !== 0 && i !== 35
         });
     }
     renderBoard(board);
@@ -100,7 +127,7 @@ function renderBoard(board) {
         if (cell.isBroken) div.classList.add('broken');
         if (cell.id === 35) div.classList.add('exit');
         div.innerText = config.arrows[cell.dir];
-        
+
         div.onclick = (e) => {
             e.preventDefault();
             if (!state.isActive) return;
@@ -157,28 +184,34 @@ function updatePathTracing() {
     }
 }
 
-function handleWin() {
+async function handleWin() {
     if (!state.isActive) return;
-    const statusDisplay = document.getElementById('status');
     state.isActive = false;
     clearInterval(state.timerInterval);
-    
-    if (statusDisplay) {
-        statusDisplay.innerText = "ACCESS GRANTED";
-        statusDisplay.style.color = "#00ff41";
-    }
-    
+
     const timeTaken = (config.timerMax - state.timeLeft).toFixed(2);
-    Storage.saveBestTime(timeTaken);
-    
-    const highScoreEl = document.getElementById('high-score');
-    if (highScoreEl) highScoreEl.innerText = Storage.getBestTime();
+    const username = Storage.getUser();
+
+    // Save to Firebase
+    await Storage.saveGlobalScore(username, timeTaken);
+
+    // Standard UI updates
+    statusDisplay.innerText = "ALL SYSTEMS RECOVERED - ACCESS GRANTED";
+    statusDisplay.style.color = "var(--clr-main)";
 }
 
 // console hint easter egg
 console.log("%c[SYSTEM] Type 'noclip()' for infinite time.", "color: #00ff41; font-weight: bold;");
-window.noclip = () => { 
-    clearInterval(state.timerInterval); 
-    timerDisplay.innerText = "INF"; 
-    return "Cheat Engaged."; 
+window.noclip = () => {
+    clearInterval(state.timerInterval);
+    timerDisplay.innerText = "INF";
+    return "Cheat Engaged.";
 };
+
+Storage.getGlobalLeaderboard((scores) => {
+    const highScoreEl = document.getElementById('high-score');
+    // For now, let's just show the #1 global score in your BEST slot
+    if (scores.length > 0) {
+        highScoreEl.innerText = `${scores[0].score}s (${scores[0].username})`;
+    }
+});
