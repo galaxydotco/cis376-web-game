@@ -15,10 +15,10 @@ const sounds = {
     start: new Audio('assets/start.mp3'),
     win: new Audio('assets/win.mp3'),
     fail: new Audio('assets/fail.mp3'),
-    error: new Audio('assets/error.mp3'), // <-- Ensure there is a comma here
+    error: new Audio('assets/error.mp3'), 
     clickUpDn: new Audio('assets/click_up_down.mp3'),
     clickLeft: new Audio('assets/click_left.mp3'),
-    clickRight: new Audio('assets/click_right.mp3') // Last one doesn't need a comma
+    clickRight: new Audio('assets/click_right.mp3') 
 };
 
 // Set volumes (optional)
@@ -36,51 +36,39 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function init() {
-    playerForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const nameInput = document.getElementById('username');
-        if (nameInput && nameInput.value.length >= 3) {
-            sounds.start.play(); // PLAY START SOUND
-            Storage.saveUser(nameInput.value);
-            if (displayName) displayName.innerText = nameInput.value;
-            startNewGame();
-        }
-        // ...
-    });
-
-    // Fetch Global Leaderboard
+    // --- 1. Leaderboard Fetching (Keep this as is) ---
     Storage.getGlobalLeaderboard((scores) => {
         if (!leaderboardContainer) return;
         leaderboardContainer.innerHTML = '';
-
         if (scores.length === 0) {
             leaderboardContainer.innerHTML = '<div class="text-center">NO DATA FOUND</div>';
             return;
         }
-
         if (highScoreEl && scores[0]) {
             highScoreEl.innerText = `${scores[0].score}s (${scores[0].username})`;
         }
-
         scores.forEach((entry, index) => {
             const div = document.createElement('div');
             div.className = 'entry';
-            div.innerHTML = `
-                <span><span class="rank">#${index + 1}</span> ${entry.username.toUpperCase()}</span>
-                <span>${entry.score.toFixed(2)}s</span>
-            `;
+            div.innerHTML = `<span><span class="rank">#${index + 1}</span> ${entry.username.toUpperCase()}</span><span>${entry.score.toFixed(2)}s</span>`;
             leaderboardContainer.appendChild(div);
         });
     });
 
     if (displayName) displayName.innerText = Storage.getUser();
 
-    const playerForm = document.getElementById('player-form');
+    // --- 2. The Fixed Player Form Section ---
+    // Make sure this line is OUTSIDE and ABOVE the listener
+    const playerForm = document.getElementById('player-form'); 
+    
     if (playerForm) {
         playerForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const nameInput = document.getElementById('username');
             if (nameInput && nameInput.value.length >= 3) {
+                // Play sound if it exists
+                if (sounds.start) sounds.start.play(); 
+                
                 Storage.saveUser(nameInput.value);
                 if (displayName) displayName.innerText = nameInput.value;
                 startNewGame();
