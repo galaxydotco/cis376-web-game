@@ -195,19 +195,19 @@ function updatePathTracing() {
     const nodes = document.querySelectorAll('.node');
     if (!nodes.length || !statusDisplay) return;
 
+    // 1. Reset visual path
     nodes.forEach(n => n.classList.remove('active'));
+    
     let currIdx = 0;
     let visited = new Set();
     let isBlocked = false;
 
-    // --- NEW: Calculate how many nodes SHOULD be in the path ---
-    // We count every node that is NOT broken.
-    const totalValidNodes = state.grid.filter(cell => !cell.isBroken).length;
-
+    // 2. Trace the signal
     while (currIdx !== null) {
         nodes[currIdx].classList.add('active');
-        visited.add(currIdx); // Add current node to our path count
+        visited.add(currIdx);
 
+        // If we hit a broken node, the trace stops here
         if (state.grid[currIdx].isBroken) {
             isBlocked = true;
             if (statusDisplay.innerText !== "SIGNAL BLOCKED: REPAIR REQUIRED") {
@@ -218,21 +218,25 @@ function updatePathTracing() {
             break; 
         }
 
+        // 3. THE "STRICT PATH" WIN CHECK
         if (currIdx === 35 && !isBlocked) {
-            // --- UPDATED WIN CONDITION ---
-            // Only win if the number of visited nodes equals the number of non-broken nodes
-            if (visited.size === totalValidNodes) {
+            // Check if every working (non-broken) node is in our 'visited' set
+            const totalFunctionalNodes = state.grid.filter(cell => !cell.isBroken).length;
+            
+            if (visited.size === totalFunctionalNodes) {
+                // PERFECT PATH: Reach end + used all nodes
                 if (state.timeLeft < config.timerMax) {
                     handleWin();
                 }
             } else {
-                // The path reached the end, but skipped some nodes!
-                statusDisplay.innerText = `INCOMPLETE TRACE: ${totalValidNodes - visited.size} NODES LEAKING`;
-                statusDisplay.style.color = "#ffaa00"; // Orange for "almost there"
+                // BYPASS DETECTED: Reached end but left blanks behind
+                statusDisplay.innerText = "INCOMPLETE CIRCUIT: LEAK DETECTED";
+                statusDisplay.style.color = "#ffaa00";
             }
             return;
         }
 
+        // 4. Calculate Next Move
         let x = currIdx % 6;
         let y = Math.floor(currIdx / 6);
         let direction = state.grid[currIdx].dir;
