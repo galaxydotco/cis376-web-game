@@ -44,7 +44,6 @@ const leaderboardContainer = document.getElementById('global-leaderboard');
 document.addEventListener('DOMContentLoaded', init);
 
 function init() {
-    // Render the initial state of the leaderboard when the page loads
     renderLeaderboard();
     if (displayName) displayName.innerText = Storage.getUser();
 
@@ -54,8 +53,6 @@ function init() {
             e.preventDefault();
             unlockAudio();
             const nameInput = document.getElementById('username');
-
-            // Basic validation to ensure the username is at least 3 characters
             if (nameInput && nameInput.value.length >= 3) {
                 Storage.saveUser(nameInput.value);
                 if (displayName) displayName.innerText = nameInput.value;
@@ -73,29 +70,25 @@ function init() {
         });
     }
 
-    // Inside your init() function in game.js
+    // --- EXPAND BUTTON LOGIC (KEEP IT HERE) ---
     const expandBtn = document.getElementById('expand-leaderboard-btn');
+    const container = document.getElementById('global-leaderboard');
 
-    if (expandBtn) {
-        console.log("Expand button found!"); // Check your browser console (F12) for this!
-
+    if (expandBtn && container) {
         expandBtn.onclick = (e) => {
             e.preventDefault();
-            const container = document.getElementById('global-leaderboard');
-
             container.classList.toggle('expanded');
-            console.log("Expanded class toggled:", container.classList.contains('expanded'));
-
+            
             if (container.classList.contains('expanded')) {
                 expandBtn.innerText = '[-] COLLAPSE ARCHIVE';
-                sounds.clickUpDn.play().catch(() => { });
+                sounds.clickUpDn.currentTime = 0;
+                sounds.clickUpDn.play().catch(() => {});
             } else {
                 expandBtn.innerText = '[+] EXPAND ARCHIVE';
-                sounds.clickLeft.play().catch(() => { });
+                sounds.clickLeft.currentTime = 0;
+                sounds.clickLeft.play().catch(() => {});
             }
         };
-    } else {
-        console.error("Expand button NOT found in the DOM.");
     }
 }
 
@@ -103,63 +96,42 @@ function renderLeaderboard(newScoreIndex = null) {
     Storage.getGlobalLeaderboard((scores) => {
         if (!leaderboardContainer) return;
 
-        // --- NEW: HIGHLIGHT LOGIC ---
-        // Retrieve the current user's stored name so we can compare it against the list
         const currentUser = Storage.getUser();
-
+        // This clears the "LOADING DATA..." text immediately
         leaderboardContainer.innerHTML = '';
 
-        // Handle empty states gracefully
-        if (scores.length === 0) {
-            leaderboardContainer.innerHTML = '<div class="text-center">NO DATA FOUND</div>';
+        if (!scores || scores.length === 0) {
+            leaderboardContainer.innerHTML = '<div class="text-center">NO ARCHIVES FOUND</div>';
             return;
         }
 
-        // Update the top-level high score display element if it exists
         if (highScoreEl && scores[0]) {
-            highScoreEl.innerText = `${scores[0].score}s (${scores[0].username})`;
+            highScoreEl.innerText = `${scores[0].score.toFixed(2)}s (${scores[0].username})`;
         }
 
-        // Loop through every score in the fetched dataset
         scores.forEach((entry, index) => {
             const div = document.createElement('div');
-            div.className = 'entry';
+            div.className = 'entry d-flex justify-content-between p-1';
 
-            // --- NEW: HIGHLIGHT CURRENT USER'S SCORES ---
-            // If the entry's username matches the active user, add a specific highlight class
+            // Highlight current user
             if (entry.username === currentUser) {
                 div.classList.add('user-score-highlight');
+                div.style.backgroundColor = 'rgba(0, 255, 65, 0.1)';
             }
 
-            // Highlight the brand new score if they just finished a game
+            // Highlight the brand new score
             if (index === newScoreIndex) {
                 div.classList.add('new-score-highlight');
-                if (index === 0) {
-                    div.classList.add('top-record-badge');
-                }
             }
 
-            // Construct the HTML for the entry row
-            div.innerHTML = `<span><span class="rank">#${index + 1}</span> ${entry.username.toUpperCase()}</span><span>${entry.score.toFixed(2)}s</span>`;
+            div.innerHTML = `
+                <span>
+                    <span class="rank" style="opacity: 0.5;">#${index + 1}</span> 
+                    ${entry.username.toUpperCase()}
+                </span>
+                <span class="fw-bold">${parseFloat(entry.score).toFixed(2)}s</span>
+            `;
             leaderboardContainer.appendChild(div);
-
-            const expandBtn = document.getElementById('expand-leaderboard-btn');
-            if (expandBtn) {
-                expandBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    leaderboardContainer.classList.toggle('expanded');
-
-                    if (leaderboardContainer.classList.contains('expanded')) {
-                        expandBtn.innerText = '[-] COLLAPSE ARCHIVE';
-                        sounds.clickUpDn.currentTime = 0;
-                        sounds.clickUpDn.play().catch(() => { });
-                    } else {
-                        expandBtn.innerText = '[+] EXPAND ARCHIVE';
-                        sounds.clickLeft.currentTime = 0;
-                        sounds.clickLeft.play().catch(() => { });
-                    }
-                });
-            }
         });
     });
 }
