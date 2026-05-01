@@ -36,22 +36,26 @@ Gemini was a life saver for helping me resole the long list of issues I had runn
 
 # Code Snippet 
 ```
-if (state.grid[currIdx].isBroken) break;
-        visited.add(currIdx);
-        let x = currIdx % 6;
-        let y = Math.floor(currIdx / 6);
-        let direction = state.grid[currIdx].dir;
-        if (direction === 0) y--;
-        else if (direction === 1) x++;
-        else if (direction === 2) y++;
-        else if (direction === 3) x--;
-        if (x < 0 || x >= 6 || y < 0 || y >= 6) break;
-        let nextIdx = y * 6 + x;
-        if (visited.has(nextIdx)) break;
-        currIdx = nextIdx;
+let startSound = sounds.start;
+    if (roll < 0.10) {
+        document.body.classList.add('theme-pink');
+        if (statusDisplay) statusDisplay.innerText = "OVERRIDE: CYBER-VIBE DETECTED";
+        startSound = sounds.egg_pink;
+    } else if (roll < 0.15) {
+        document.body.classList.add('theme-rainbow');
+        if (statusDisplay) statusDisplay.innerText = "CRITICAL GLITCH: SPECTRUM SHIFT";
+        startSound = sounds.egg_rainbow;
+    } else {
+        if (statusDisplay) {
+            statusDisplay.innerText = "SIGNAL TRACE ACTIVE";
+            statusDisplay.style.color = "#00ff41";
+        }
+    }
 ```
 This is the "brain" of the signal tracking when interacting with the game. 
 It calculates where the green light should travel next based on the direction of the arrow. 
 It's really neat because it's like a running check to look all around to determine it's next step.
 
 # WireFrame 
+Created using Canva
+<img width="1920" height="1080" alt="CIS 376  Web Game Wireframe" src="https://github.com/user-attachments/assets/76e64a75-9b22-4a6c-a617-d3dd743c4226" />
