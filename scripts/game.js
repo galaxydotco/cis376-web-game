@@ -44,7 +44,9 @@ const leaderboardContainer = document.getElementById('global-leaderboard');
 
 document.addEventListener('DOMContentLoaded', init);
 
-function init() {
+ async function init() {
+    await runBootSequence();
+
     renderLeaderboard();
     if (displayName) displayName.innerText = Storage.getUser();
 
@@ -79,15 +81,15 @@ function init() {
         expandBtn.onclick = (e) => {
             e.preventDefault();
             container.classList.toggle('expanded');
-            
+
             if (container.classList.contains('expanded')) {
                 expandBtn.innerText = '[-] COLLAPSE ARCHIVE';
                 sounds.clickUpDn.currentTime = 0;
-                sounds.clickUpDn.play().catch(() => {});
+                sounds.clickUpDn.play().catch(() => { });
             } else {
                 expandBtn.innerText = '[+] EXPAND ARCHIVE';
                 sounds.clickLeft.currentTime = 0;
-                sounds.clickLeft.play().catch(() => {});
+                sounds.clickLeft.play().catch(() => { });
             }
         };
     }
@@ -308,17 +310,20 @@ async function handleWin() {
     await Storage.saveGlobalScore(Storage.getUser(), timeTaken);
 
     Storage.getGlobalLeaderboard((scores) => {
-        const totalEntries = scores.length;
+        // game.js - Inside handleWin()
+        const totalEntries = Storage.getTotalCount(); // Get real total from Firebase
         let myRank = 1;
+
+        // Still use the local scores list to find where the user fits
         for (let i = 0; i < scores.length; i++) {
             if (Number(scores[i].score) < timeTaken) {
                 myRank++;
             }
         }
 
+        // Math: (Your Rank / Total Players) * 100
         let topPercent = Math.ceil((myRank / totalEntries) * 100);
-        if (totalEntries <= 1 || myRank === 1) topPercent = 1;
-        topPercent = Math.max(1, Math.min(topPercent, 100));
+        if (myRank === 1) topPercent = 1;
 
         statusDisplay.innerText = `ACCESS GRANTED: TOP ${topPercent}% SPEED`;
         statusDisplay.style.color = "#00ff41";

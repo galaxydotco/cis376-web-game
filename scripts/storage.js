@@ -19,9 +19,11 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
-// storage.js
-
 export const Storage = {
+    async getTotalCount() {
+        const snapshot = await database.ref('leaderboard').once('value');
+        return snapshot.numChildren() || 1;
+    },
     // 1. Save score globally
     async saveGlobalScore(username, time) {
         const scoreRef = database.ref('leaderboard').push();
@@ -36,13 +38,13 @@ export const Storage = {
     async getGlobalLeaderboard(callback) {
         // Changed from 5 to 25 so the "Expand" button actually has data to show
         const topScoresRef = database.ref('leaderboard').orderByChild('score').limitToFirst(25);
-        
+
         topScoresRef.on('value', (snapshot) => {
             const scores = [];
             snapshot.forEach((childSnapshot) => {
                 scores.push(childSnapshot.val());
             });
-            callback(scores); 
+            callback(scores);
         });
     },
 
