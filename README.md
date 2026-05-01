@@ -35,7 +35,7 @@ All w3school tutorials used
 Gemini was a life saver for helping me resole the long list of issues I had running this on the live server.
 
 # Code Snippet 
-```
+```js
 let startSound = sounds.start;
     if (roll < 0.10) {
         document.body.classList.add('theme-pink');
