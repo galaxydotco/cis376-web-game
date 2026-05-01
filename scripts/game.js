@@ -73,24 +73,29 @@ function init() {
         });
     }
 
-    // --- NEW: EXPAND LEADERBOARD LOGIC ---
-    // Grab the button that will act as our toggle switch
+    // Inside your init() function in game.js
     const expandBtn = document.getElementById('expand-leaderboard-btn');
+
     if (expandBtn) {
-        expandBtn.addEventListener('click', (e) => {
+        console.log("Expand button found!"); // Check your browser console (F12) for this!
+
+        expandBtn.onclick = (e) => {
             e.preventDefault();
+            const container = document.getElementById('global-leaderboard');
 
-            // Toggle an 'expanded' class on the container. 
-            // CSS will use this class to change max-height or overflow properties.
-            leaderboardContainer.classList.toggle('expanded');
+            container.classList.toggle('expanded');
+            console.log("Expanded class toggled:", container.classList.contains('expanded'));
 
-            // Update the button's text dynamically so the user knows the current state
-            if (leaderboardContainer.classList.contains('expanded')) {
-                expandBtn.innerText = 'Collapse Leaderboard';
+            if (container.classList.contains('expanded')) {
+                expandBtn.innerText = '[-] COLLAPSE ARCHIVE';
+                sounds.clickUpDn.play().catch(() => { });
             } else {
-                expandBtn.innerText = 'Expand Leaderboard';
+                expandBtn.innerText = '[+] EXPAND ARCHIVE';
+                sounds.clickLeft.play().catch(() => { });
             }
-        });
+        };
+    } else {
+        console.error("Expand button NOT found in the DOM.");
     }
 }
 
