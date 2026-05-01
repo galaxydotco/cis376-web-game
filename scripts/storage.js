@@ -20,10 +20,19 @@ firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
 export const Storage = {
+    // storage.js
     async getTotalCount() {
-        const snapshot = await database.ref('leaderboard').once('value');
-        return snapshot.numChildren() || 1;
+        try {
+            const snapshot = await database.ref('leaderboard').once('value');
+            const count = snapshot.numChildren();
+            // Ensure we return a valid number, default to 1 if 0 or null
+            return (count && count > 0) ? count : 1;
+        } catch (error) {
+            console.error("Failed to fetch count:", error);
+            return 1; // Fallback
+        }
     },
+    
     // 1. Save score globally
     async saveGlobalScore(username, time) {
         const scoreRef = database.ref('leaderboard').push();
