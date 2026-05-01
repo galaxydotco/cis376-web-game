@@ -85,9 +85,18 @@ main { flex-grow: 1; }
 #global-leaderboard .entry {
     display: flex;
     justify-content: space-between;
+    align-items: center; /* Keeps things vertically centered */
     font-size: 0.85rem;
-    padding: 2px 0;
+    padding: 4px 0; /* Slightly more padding for readability */
     border-bottom: 1px dotted rgba(0, 255, 65, 0.2);
+    white-space: nowrap; /* CRITICAL: Prevents the two-line jump */
+    overflow: hidden;    /* Keeps long names from breaking the box */
+}
+
+#global-leaderboard .entry span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis; /* Adds "..." if a name is way too long */
+    margin-right: 10px;
 }
 
 #global-leaderboard .entry:last-child {

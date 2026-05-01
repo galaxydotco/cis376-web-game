@@ -56,7 +56,7 @@ const leaderboardContainer = document.getElementById('global-leaderboard');
 
 document.addEventListener('DOMContentLoaded', init);
 
-async function init() {
+ async function init() {
     await runBootSequence();
 
     renderLeaderboard();
@@ -340,7 +340,7 @@ async function handleWin() {
         let topPercent = Math.ceil(rawPercent);
 
         if (myRank === 1) topPercent = 1;
-
+        
         // 3. Final safety check: if math fails, default to 100 instead of NaN
         if (isNaN(topPercent)) topPercent = 100;
 
