@@ -31,7 +31,7 @@ function unlockAudio() {
             sound.pause();
             sound.muted = false;
             sound.currentTime = 0;
-        }).catch(() => {});
+        }).catch(() => { });
     });
 }
 
@@ -52,9 +52,9 @@ function init() {
     if (playerForm) {
         playerForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            unlockAudio(); 
+            unlockAudio();
             const nameInput = document.getElementById('username');
-            
+
             // Basic validation to ensure the username is at least 3 characters
             if (nameInput && nameInput.value.length >= 3) {
                 Storage.saveUser(nameInput.value);
@@ -66,10 +66,10 @@ function init() {
 
     const navReset = document.getElementById('nav-reset');
     if (navReset) {
-        navReset.addEventListener('click', (e) => { 
-            e.preventDefault(); 
+        navReset.addEventListener('click', (e) => {
+            e.preventDefault();
             unlockAudio();
-            setTimeout(startNewGame, 50); 
+            setTimeout(startNewGame, 50);
         });
     }
 
@@ -79,11 +79,11 @@ function init() {
     if (expandBtn) {
         expandBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            
+
             // Toggle an 'expanded' class on the container. 
             // CSS will use this class to change max-height or overflow properties.
             leaderboardContainer.classList.toggle('expanded');
-            
+
             // Update the button's text dynamically so the user knows the current state
             if (leaderboardContainer.classList.contains('expanded')) {
                 expandBtn.innerText = 'Collapse Leaderboard';
@@ -97,46 +97,64 @@ function init() {
 function renderLeaderboard(newScoreIndex = null) {
     Storage.getGlobalLeaderboard((scores) => {
         if (!leaderboardContainer) return;
-        
+
         // --- NEW: HIGHLIGHT LOGIC ---
         // Retrieve the current user's stored name so we can compare it against the list
         const currentUser = Storage.getUser();
 
         leaderboardContainer.innerHTML = '';
-        
+
         // Handle empty states gracefully
         if (scores.length === 0) {
             leaderboardContainer.innerHTML = '<div class="text-center">NO DATA FOUND</div>';
             return;
         }
-        
+
         // Update the top-level high score display element if it exists
         if (highScoreEl && scores[0]) {
             highScoreEl.innerText = `${scores[0].score}s (${scores[0].username})`;
         }
-        
+
         // Loop through every score in the fetched dataset
         scores.forEach((entry, index) => {
             const div = document.createElement('div');
             div.className = 'entry';
-            
+
             // --- NEW: HIGHLIGHT CURRENT USER'S SCORES ---
             // If the entry's username matches the active user, add a specific highlight class
             if (entry.username === currentUser) {
-                div.classList.add('user-score-highlight'); 
+                div.classList.add('user-score-highlight');
             }
 
             // Highlight the brand new score if they just finished a game
             if (index === newScoreIndex) {
-                div.classList.add('new-score-highlight'); 
+                div.classList.add('new-score-highlight');
                 if (index === 0) {
                     div.classList.add('top-record-badge');
                 }
-            } 
-            
+            }
+
             // Construct the HTML for the entry row
             div.innerHTML = `<span><span class="rank">#${index + 1}</span> ${entry.username.toUpperCase()}</span><span>${entry.score.toFixed(2)}s</span>`;
             leaderboardContainer.appendChild(div);
+
+            const expandBtn = document.getElementById('expand-leaderboard-btn');
+            if (expandBtn) {
+                expandBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    leaderboardContainer.classList.toggle('expanded');
+
+                    if (leaderboardContainer.classList.contains('expanded')) {
+                        expandBtn.innerText = '[-] COLLAPSE ARCHIVE';
+                        sounds.clickUpDn.currentTime = 0;
+                        sounds.clickUpDn.play().catch(() => { });
+                    } else {
+                        expandBtn.innerText = '[+] EXPAND ARCHIVE';
+                        sounds.clickLeft.currentTime = 0;
+                        sounds.clickLeft.play().catch(() => { });
+                    }
+                });
+            }
         });
     });
 }
@@ -147,14 +165,14 @@ async function startNewGame() {
     state.isActive = true;
     state.hasMoved = false;
     state.timeLeft = config.timerMax;
-    
+
     // 1. Set the Esports-grade Absolute Start Time
-    state.startTime = Date.now(); 
+    state.startTime = Date.now();
 
     // 2. Theme & Easter Egg Selection
     document.body.classList.remove('theme-pink', 'theme-rainbow');
     const roll = Math.random();
-    
+
     let startSound = sounds.start;
     if (roll < 0.10) {
         document.body.classList.add('theme-pink');
@@ -229,20 +247,20 @@ function renderBoard(board) {
             if (cell.isBroken) {
                 if (!div.classList.contains('active')) {
                     sounds.error.currentTime = 0;
-                    sounds.error.play().catch(() => {});
+                    sounds.error.play().catch(() => { });
                     return;
                 }
                 cell.isBroken = false;
                 div.classList.remove('broken');
                 sounds.clickUpDn.currentTime = 0;
-                sounds.clickUpDn.play().catch(() => {});
+                sounds.clickUpDn.play().catch(() => { });
             } else {
                 cell.dir = (cell.dir + 1) % 4;
                 div.innerText = config.arrows[cell.dir];
-                const s = (cell.dir === 0 || cell.dir === 2) ? sounds.clickUpDn : 
-                          (cell.dir === 1) ? sounds.clickRight : sounds.clickLeft;
+                const s = (cell.dir === 0 || cell.dir === 2) ? sounds.clickUpDn :
+                    (cell.dir === 1) ? sounds.clickRight : sounds.clickLeft;
                 s.currentTime = 0;
-                s.play().catch(() => {});
+                s.play().catch(() => { });
             }
             updatePathTracing();
         };
@@ -280,7 +298,7 @@ function updatePathTracing() {
     }
 
     const brokenRemaining = state.grid.filter(c => c.isBroken).length;
-    
+
     if (!reachedEnd && statusDisplay.innerText.includes("INCOMPLETE")) {
         statusDisplay.innerText = "SIGNAL TRACE ACTIVE";
         statusDisplay.style.color = "#00ff41";
@@ -293,7 +311,7 @@ function updatePathTracing() {
             statusDisplay.innerText = `INCOMPLETE: ${brokenRemaining} NODES REMAINING`;
             statusDisplay.style.color = "#ffaa00";
             sounds.error.currentTime = 0;
-            sounds.error.play().catch(() => {});
+            sounds.error.play().catch(() => { });
         }
     }
 }
@@ -302,13 +320,13 @@ async function handleWin() {
     if (!state.isActive) return;
     state.isActive = false;
     clearInterval(state.timerInterval);
-    
+
     const finalTime = Date.now();
     const timeTaken = Number(((finalTime - state.startTime) / 1000).toFixed(2));
-    
+
     sounds.win.currentTime = 0;
-    sounds.win.play().catch(() => {});
-    
+    sounds.win.play().catch(() => { });
+
     await Storage.saveGlobalScore(Storage.getUser(), timeTaken);
 
     Storage.getGlobalLeaderboard((scores) => {
@@ -319,15 +337,15 @@ async function handleWin() {
                 myRank++;
             }
         }
-        
+
         let topPercent = Math.ceil((myRank / totalEntries) * 100);
         if (totalEntries <= 1 || myRank === 1) topPercent = 1;
         topPercent = Math.max(1, Math.min(topPercent, 100));
 
         statusDisplay.innerText = `ACCESS GRANTED: TOP ${topPercent}% SPEED`;
         statusDisplay.style.color = "#00ff41";
-        
-        renderLeaderboard(myRank - 1); 
+
+        renderLeaderboard(myRank - 1);
     });
 }
 
@@ -335,7 +353,7 @@ function handleGameOver() {
     state.isActive = false;
     clearInterval(state.timerInterval);
     sounds.fail.currentTime = 0;
-    sounds.fail.play().catch(() => {});
+    sounds.fail.play().catch(() => { });
     statusDisplay.innerText = "CONNECTION TERMINATED";
     statusDisplay.style.color = "#ff0041";
 }

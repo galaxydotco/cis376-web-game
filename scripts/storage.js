@@ -19,6 +19,8 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
+// storage.js
+
 export const Storage = {
     // 1. Save score globally
     async saveGlobalScore(username, time) {
@@ -30,22 +32,21 @@ export const Storage = {
         });
     },
 
-    // 2. Fetch Top 5 scores
+    // 2. Fetch Top Scores (Increased limit for the expander)
     async getGlobalLeaderboard(callback) {
-        const topScoresRef = database.ref('leaderboard').orderByChild('score').limitToFirst(5);
+        // Changed from 5 to 25 so the "Expand" button actually has data to show
+        const topScoresRef = database.ref('leaderboard').orderByChild('score').limitToFirst(25);
+        
         topScoresRef.on('value', (snapshot) => {
             const scores = [];
             snapshot.forEach((childSnapshot) => {
                 scores.push(childSnapshot.val());
             });
-            callback(scores); // Send the data back to the UI
+            callback(scores); 
         });
     },
 
-    // Keep your local username logic
     saveUser(name) { sessionStorage.setItem('dos_username', name); },
     getUser() { return sessionStorage.getItem('dos_username') || "GUEST"; },
-    
-    // Legacy support for your existing UI
     getBestTime() { return localStorage.getItem('dos_best_time') || "--"; }
 };
