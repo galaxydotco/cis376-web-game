@@ -163,3 +163,23 @@ body.theme-rainbow .node {
     letter-spacing: 1px;
     /* Removed the transform/rotation so it sits flat and clean! */
 }
+
+/* By default, hide the overflow so it acts as a compact list */
+#global-leaderboard {
+    max-height: 150px; /* Adjust this to show only the top 3-5 scores */
+    overflow-y: hidden;
+    transition: max-height 0.3s ease-in-out;
+}
+
+/* When the 'expanded' class is toggled on via JS, show all scores */
+#global-leaderboard.expanded {
+    max-height: 600px; /* Make this large enough to hold the full list */
+    overflow-y: auto;
+}
+
+/* The style applied to the current user's scores so they stand out */
+.user-score-highlight {
+    background-color: rgba(0, 255, 65, 0.2); /* A faint green matrix-style background */
+    border-left: 3px solid #00ff41;
+    font-weight: bold;
+}

@@ -44,6 +44,7 @@ const leaderboardContainer = document.getElementById('global-leaderboard');
 document.addEventListener('DOMContentLoaded', init);
 
 function init() {
+    // Render the initial state of the leaderboard when the page loads
     renderLeaderboard();
     if (displayName) displayName.innerText = Storage.getUser();
 
@@ -53,6 +54,8 @@ function init() {
             e.preventDefault();
             unlockAudio(); 
             const nameInput = document.getElementById('username');
+            
+            // Basic validation to ensure the username is at least 3 characters
             if (nameInput && nameInput.value.length >= 3) {
                 Storage.saveUser(nameInput.value);
                 if (displayName) displayName.innerText = nameInput.value;
@@ -69,23 +72,61 @@ function init() {
             setTimeout(startNewGame, 50); 
         });
     }
+
+    // --- NEW: EXPAND LEADERBOARD LOGIC ---
+    // Grab the button that will act as our toggle switch
+    const expandBtn = document.getElementById('expand-leaderboard-btn');
+    if (expandBtn) {
+        expandBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            
+            // Toggle an 'expanded' class on the container. 
+            // CSS will use this class to change max-height or overflow properties.
+            leaderboardContainer.classList.toggle('expanded');
+            
+            // Update the button's text dynamically so the user knows the current state
+            if (leaderboardContainer.classList.contains('expanded')) {
+                expandBtn.innerText = 'Collapse Leaderboard';
+            } else {
+                expandBtn.innerText = 'Expand Leaderboard';
+            }
+        });
+    }
 }
 
 function renderLeaderboard(newScoreIndex = null) {
     Storage.getGlobalLeaderboard((scores) => {
         if (!leaderboardContainer) return;
+        
+        // --- NEW: HIGHLIGHT LOGIC ---
+        // Retrieve the current user's stored name so we can compare it against the list
+        const currentUser = Storage.getUser();
+
         leaderboardContainer.innerHTML = '';
+        
+        // Handle empty states gracefully
         if (scores.length === 0) {
             leaderboardContainer.innerHTML = '<div class="text-center">NO DATA FOUND</div>';
             return;
         }
+        
+        // Update the top-level high score display element if it exists
         if (highScoreEl && scores[0]) {
             highScoreEl.innerText = `${scores[0].score}s (${scores[0].username})`;
         }
+        
+        // Loop through every score in the fetched dataset
         scores.forEach((entry, index) => {
             const div = document.createElement('div');
             div.className = 'entry';
             
+            // --- NEW: HIGHLIGHT CURRENT USER'S SCORES ---
+            // If the entry's username matches the active user, add a specific highlight class
+            if (entry.username === currentUser) {
+                div.classList.add('user-score-highlight'); 
+            }
+
+            // Highlight the brand new score if they just finished a game
             if (index === newScoreIndex) {
                 div.classList.add('new-score-highlight'); 
                 if (index === 0) {
@@ -93,6 +134,7 @@ function renderLeaderboard(newScoreIndex = null) {
                 }
             } 
             
+            // Construct the HTML for the entry row
             div.innerHTML = `<span><span class="rank">#${index + 1}</span> ${entry.username.toUpperCase()}</span><span>${entry.score.toFixed(2)}s</span>`;
             leaderboardContainer.appendChild(div);
         });
