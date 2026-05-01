@@ -6,6 +6,7 @@
 */
 
 import { Storage } from './storage.js';
+import { runBootSequence } from './boot.js';
 
 const config = { size: 6, timerMax: 30, arrows: ['↑', '→', '↓', '←'] };
 let state = { grid: [], timeLeft: config.timerMax, isActive: false, timerInterval: null, hasMoved: false, startTime: null };
