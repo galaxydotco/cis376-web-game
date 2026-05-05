@@ -108,8 +108,6 @@ function renderLeaderboard(newScoreIndex = null) {
             return;
         }
 
-        const userBestEntry = scores.find(entry => entry.username === currentUser);
-
         if (highScoreEl && scores[0]) {
             highScoreEl.innerText = `${scores[0].score.toFixed(2)}s (${scores[0].username})`;
         }
