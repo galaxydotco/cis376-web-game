@@ -76,7 +76,9 @@ let startSound = sounds.start;
     }
 ```
 This snippet controls randomized visual and audio effects at the start of the game.
+
 It matters because it enhances user experience by introducing variation and unexpected “glitch” events, making gameplay more engaging.
+
 It works by generating a random value (roll) and conditionally applying themes, sounds, and status messages based on probability thresholds.
 
 ---
