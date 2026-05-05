@@ -93,4 +93,4 @@ It works by generating a random value (roll) and conditionally applying themes, 
 
 ## Wireframe
 
-<img width="1920" height="1080" alt="CIS 376 Web Game Wireframe" src="https://github.com/user-attachments/assets/76e64a75-9b22-4a6c-a617-d3dd743c4226" /> ```
+<img width="1920" height="1080" alt="CIS 376 Web Game Wireframe" src="https://github.com/user-attachments/assets/76e64a75-9b22-4a6c-a617-d3dd743c4226" /> 
