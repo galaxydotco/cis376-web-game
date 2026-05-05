@@ -1,39 +1,62 @@
-# Project Name
-DoS Attack
-April 13th, 2026
-CIS 376
+# DoS Attack
 
-# Game Objective 
-Based of the minigame in "Welcome to the Game 2." You have 30 seconds to solve the given puzzle. Your goal is to go from the top left to the bottom right by correcting the arrows to create a highlighted path to the end. The test begins imemdiately as you open the page to simulate being hacked, and you may repeat it by using the "reboot system" button.
+> A fast-paced puzzle game where players fix network paths before time runs out.
 
-# Rules 
-Follow the connection from the Start node.
-Click empty/broken nodes to correct the travel path.
-Reach the Exit node before the buffer overflows.
+---
 
-# Tech Used 
-HTML5
-JAVASCRIPT
-CSS
-LocalStorage
-Bootstrap 5
+## Author
 
-# Resource Links 
-[Bootstrap NavBar Link](https://getbootstrap.com/docs/5.3/components/navbar/)
+**Jasmine Morgan**  
+GitHub: https://github.com/galaxydotco
 
-[Advanced JS for Web Games](https://www.khanacademy.org/computing/computer-programming/programming-games-visualizations)
+---
 
-[Other Games I referenced on Github](https://github.com/proyecto26/awesome-jsgames)
+## User Story
 
-All w3school tutorials used
+- *As a player*  
+- *I want* to quickly solve a network-style puzzle under pressure  
+- *So that* I can prevent a simulated system hack from completing  
 
-[W3Schools CSS Tutorial Link ](https://www.w3schools.com/css/) 
+---
 
-[W3Schools JavaScript Tutorial Link](https://www.w3schools.com/js/)
+## Narrative
 
+This project is a browser-based puzzle game inspired by the hacking minigame from *Welcome to the Game 2*. The player is given a grid of directional nodes and must create a valid path from the start to the exit before time runs out.
 
-Gemini was a life saver for helping me resole the long list of issues I had running this on the live server.
+I chose this idea because I liked the tension and urgency of hacking-style minigames and wanted to recreate that experience in a simple web environment.
 
+During development, I built the grid system, implemented randomized puzzle behavior, and added visual/audio feedback to enhance the experience. I also improved usability by adding a reboot system and refining the UI with Bootstrap.
+
+One of the biggest challenges was debugging logic when deploying to a live server, which required troubleshooting timing issues and script execution.
+
+---
+
+## Attribution
+
+### Libraries / Tools
+- Bootstrap 5  
+  https://getbootstrap.com/docs/5.3/components/navbar/
+
+### Tutorials / References
+- Khan Academy JS Game Development  
+  https://www.khanacademy.org/computing/computer-programming/programming-games-visualizations  
+
+- W3Schools CSS  
+  https://www.w3schools.com/css/  
+
+- W3Schools JavaScript  
+  https://www.w3schools.com/js/  
+
+- JavaScript Game Examples  
+  https://github.com/proyecto26/awesome-jsgames  
+
+### AI Usage
+- Google Gemini was used to help debug deployment issues and resolve runtime errors.
+
+### Assets
+- Wireframe created using Canva
+
+---
 # Code Snippet 
 ```js
 let startSound = sounds.start;
@@ -52,10 +75,28 @@ let startSound = sounds.start;
         }
     }
 ```
-This is the "brain" of the signal tracking when interacting with the game. 
-It calculates where the green light should travel next based on the direction of the arrow. 
-It's really neat because it's like a running check to look all around to determine it's next step.
+This snippet controls randomized visual and audio effects at the start of the game.
 
-# WireFrame 
-Created using Canva
-<img width="1920" height="1080" alt="CIS 376  Web Game Wireframe" src="https://github.com/user-attachments/assets/76e64a75-9b22-4a6c-a617-d3dd743c4226" />
+It matters because it enhances user experience by introducing variation and unexpected “glitch” events, making gameplay more engaging.
+
+It works by generating a random value (roll) and conditionally applying themes, sounds, and status messages based on probability thresholds.
+
+---
+
+## Project Structure
+```bash
+.
+├── index.html
+├── css/
+│   └── styles.css
+├── js/
+│   ├── game.js
+│   ├── boot.js
+│   └── storage.js
+├── assets/
+└── README.md
+```
+
+## Wireframe
+
+<img width="1920" height="1080" alt="CIS 376 Web Game Wireframe" src="https://github.com/user-attachments/assets/76e64a75-9b22-4a6c-a617-d3dd743c4226" /> 
