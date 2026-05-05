@@ -1,3 +1,10 @@
+/*
+    CIS 376 - 01 ; Dr. Cumbie
+    Jasmine Morgan
+    4/13/2026 - 5/5/2026
+    Description: DoS Attack game clone 
+*/
+
 const asciiArt = [
     " __________________________________________________________ ",
     "|  _______  ______  _______ __   _ _ __   _ _______ _      |",
@@ -18,18 +25,18 @@ export async function runBootSequence() {
     const screen = document.getElementById('boot-screen');
     const log = document.getElementById('boot-log');
     
-    // Create a container for ASCII
+    // create a container for ASCII
     const asciiContainer = document.createElement('div');
     asciiContainer.id = 'boot-ascii';
     screen.insertBefore(asciiContainer, log);
 
-    // 1. Type out ASCII art
+    // 1. type out ASCII art
     for (let line of asciiArt) {
         asciiContainer.textContent += line + "\n";
         await new Promise(r => setTimeout(r, 50));
     }
 
-    // 2. Type out Log lines
+    // 2. type out Log lines
     for (let line of bootLines) {
         let div = document.createElement('div');
         div.className = 'log-entry';
@@ -38,11 +45,11 @@ export async function runBootSequence() {
         await new Promise(r => setTimeout(r, Math.random() * 300 + 100));
     }
 
-    // 3. Slide Up Transition
+    // 3. slide Up Transition
     return new Promise(resolve => {
         setTimeout(() => {
             screen.classList.add('slide-up');
-            // Wait for the CSS transition to finish (1s) before resolving
+            // wait for the CSS transition to finish (1s) before resolving
             setTimeout(resolve, 1000);
         }, 800);
     });

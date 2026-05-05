@@ -1,19 +1,7 @@
 /*
     CIS 376 - 01 ; Dr. Cumbie
     Jasmine Morgan
-    4/13/2026
-    Description: DoS Attack game clone 
-*/
-
-/**
- * GAME.JS - Terminal_V3.0 Core Logic
- * Handles game initialization, search filtering, and win-state calculations.
- */
-
-/*
-    CIS 376 - 01 ; Dr. Cumbie
-    Jasmine Morgan
-    4/13/2026
+    4/13/2026 - 5/52026
     Description: DoS Attack game clone 
 */
 
@@ -85,7 +73,7 @@ document.addEventListener('DOMContentLoaded', init);
         });
     }
 
-    // --- EXPAND BUTTON LOGIC (KEEP IT HERE) ---
+    // --- expand button logic ---
     const expandBtn = document.getElementById('expand-leaderboard-btn');
     const container = document.getElementById('global-leaderboard');
 
@@ -112,7 +100,7 @@ function renderLeaderboard(newScoreIndex = null) {
         if (!leaderboardContainer) return;
 
         const currentUser = Storage.getUser();
-        // This clears the "LOADING DATA..." text immediately
+        // clear "loading data" immediately
         leaderboardContainer.innerHTML = '';
 
         if (!scores || scores.length === 0) {
@@ -128,13 +116,13 @@ function renderLeaderboard(newScoreIndex = null) {
             const div = document.createElement('div');
             div.className = 'entry d-flex justify-content-between p-1';
 
-            // Highlight current user
+            // highlight current user
             if (entry.username === currentUser) {
                 div.classList.add('user-score-highlight');
                 div.style.backgroundColor = 'rgba(0, 255, 65, 0.1)';
             }
 
-            // Highlight the brand new score
+            // highlight the brand new score
             if (index === newScoreIndex) {
                 div.classList.add('new-score-highlight');
             }
@@ -151,17 +139,18 @@ function renderLeaderboard(newScoreIndex = null) {
     });
 }
 
-// --- MERGED & FIXED START FUNCTION ---
+// game logic functions
 async function startNewGame() {
     clearInterval(state.timerInterval);
     state.isActive = true;
     state.hasMoved = false;
     state.timeLeft = config.timerMax;
 
-    // 1. Set the Esports-grade Absolute Start Time
+    // 1. set the esports-grade start time
+    // thank you to all who abused my poor timer
     state.startTime = Date.now();
 
-    // 2. Theme & Easter Egg Selection
+    // 2. theme & Easter Egg Selection
     document.body.classList.remove('theme-pink', 'theme-rainbow');
     const roll = Math.random();
 
@@ -181,13 +170,13 @@ async function startNewGame() {
         }
     }
 
-    // 3. Play the Audio
+    // 3. play the Audio
     try {
         startSound.currentTime = 0;
         await startSound.play();
     } catch (e) { console.warn("Audio blocked or not loaded"); }
 
-    // 4. Start the Bulletproof Timer
+    // 4. start the Bulletproof Timer
     state.timerInterval = setInterval(() => {
         const now = Date.now();
         const elapsedSeconds = (now - state.startTime) / 1000;
@@ -201,7 +190,7 @@ async function startNewGame() {
         if (state.timeLeft <= 0) handleGameOver();
     }, 10);
 
-    // 5. Build the Board
+    // 5. build the Board
     requestAnimationFrame(() => {
         buildLevel();
     });
@@ -323,8 +312,8 @@ async function handleWin() {
     const totalEntries = await Storage.getTotalCount();
 
     Storage.getGlobalLeaderboard((scores) => {
-        // game.js - Inside handleWin()
-        const totalEntries = Storage.getTotalCount(); // Get real total from Firebase
+        // game.js - inside handleWin()
+        const totalEntries = Storage.getTotalCount(); // get real total from firebase
         let myRank = 1;
 
         if (Array.isArray(scores)) {
@@ -335,13 +324,13 @@ async function handleWin() {
             }
         }
 
-        // 2. Add a fallback (|| 1) to prevent dividing by zero
+        // 2. add a fallback to prevent dividing by zero
         let rawPercent = (myRank / (totalEntries || 1)) * 100;
         let topPercent = Math.ceil(rawPercent);
 
         if (myRank === 1) topPercent = 1;
         
-        // 3. Final safety check: if math fails, default to 100 instead of NaN
+        // 3. final safety check: if math fails, default to 100 instead of NaN
         if (isNaN(topPercent)) topPercent = 100;
 
         statusDisplay.innerText = `ACCESS GRANTED: TOP ${topPercent}% SPEED`;

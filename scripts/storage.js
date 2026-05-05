@@ -5,7 +5,7 @@
     Description: DoS Attack game clone 
 */
 
-// Initialize Firebase
+// initialize Firebase
 const firebaseConfig = {
     apiKey: "AIzaSyAjj1rRsYnJYTEy6_YtT2jWLZ5qTgHSNww",
     authDomain: "game-project-a8124.firebaseapp.com",
@@ -25,7 +25,7 @@ export const Storage = {
         try {
             const snapshot = await database.ref('leaderboard').once('value');
             const count = snapshot.numChildren();
-            // Ensure we return a valid number, default to 1 if 0 or null
+            // ensure we return a valid number, default to 1 if 0 or null
             return (count && count > 0) ? count : 1;
         } catch (error) {
             console.error("Failed to fetch count:", error);
@@ -33,7 +33,7 @@ export const Storage = {
         }
     },
     
-    // 1. Save score globally
+    // 1. save score globally
     async saveGlobalScore(username, time) {
         const scoreRef = database.ref('leaderboard').push();
         await scoreRef.set({
@@ -43,9 +43,8 @@ export const Storage = {
         });
     },
 
-    // 2. Fetch Top Scores (Increased limit for the expander)
+    // 2. fetch Top Scores (Increased limit for the expander)
     async getGlobalLeaderboard(callback) {
-        // Changed from 5 to 25 so the "Expand" button actually has data to show
         const topScoresRef = database.ref('leaderboard').orderByChild('score').limitToFirst(25);
 
         topScoresRef.on('value', (snapshot) => {
