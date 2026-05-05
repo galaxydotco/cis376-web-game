@@ -86,7 +86,11 @@ It works by generating a random value (roll) and conditionally applying themes, 
 .
 ├── index.html
 ├── css/
+│   └── styles.css
 ├── js/
+│   ├── game.js
+│   ├── boot.js
+│   └── storage.js
 ├── assets/
 └── README.md
 ```
