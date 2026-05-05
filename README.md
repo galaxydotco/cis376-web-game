@@ -75,9 +75,13 @@ let startSound = sounds.start;
         }
     }
 ```
+This snippet controls randomized visual and audio effects at the start of the game.
+It matters because it enhances user experience by introducing variation and unexpected “glitch” events, making gameplay more engaging.
+It works by generating a random value (roll) and conditionally applying themes, sounds, and status messages based on probability thresholds.
+
+---
 
 ## Project Structure
-
 ```bash
 .
 ├── index.html
@@ -85,3 +89,8 @@ let startSound = sounds.start;
 ├── js/
 ├── assets/
 └── README.md
+```
+
+## Wireframe
+
+<img width="1920" height="1080" alt="CIS 376 Web Game Wireframe" src="https://github.com/user-attachments/assets/76e64a75-9b22-4a6c-a617-d3dd743c4226" /> ```
