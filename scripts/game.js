@@ -313,7 +313,6 @@ async function handleWin() {
 
     Storage.getGlobalLeaderboard((scores) => {
         // game.js - inside handleWin()
-        const totalEntries = Storage.getTotalCount(); // get real total from firebase
         let myRank = 1;
 
         if (Array.isArray(scores)) {
